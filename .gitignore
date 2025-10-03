@@ -58,3 +58,7 @@ logs/
 # IDE
 .idea/
 *.iml
+
+# Temporary
+img/
+README.md
