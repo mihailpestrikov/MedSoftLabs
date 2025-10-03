@@ -1,0 +1,60 @@
+# Environment variables
+.env
+.env.local
+
+# TLS Certificates (keep generate.sh only)
+certs/*.crt
+certs/*.key
+certs/*.pem
+
+# Go
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+go.work
+
+# Go vendor
+vendor/
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Build outputs
+dist/
+dist-ssr/
+*.local
+build/
+
+# Editor directories and files
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Database
+*.db
+*.sqlite
+postgres-data/
+
+# Logs
+logs/
+*.log
+
+# IDE
+.idea/
+*.iml
