@@ -13,7 +13,7 @@ type Repository struct {
 	sq sq.StatementBuilderType
 }
 
-func NewRepository(db *sql.DB) *Repository {
+func New(db *sql.DB) *Repository {
 	return &Repository{
 		db: db,
 		sq: sq.StatementBuilder.PlaceholderFormat(sq.Dollar),
