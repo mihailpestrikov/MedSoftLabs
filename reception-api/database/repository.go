@@ -20,6 +20,16 @@ func New(db *sql.DB) *Repository {
 	}
 }
 
+func (r *Repository) CreateUser(username, passwordHash string) error {
+	query := r.sq.Insert("users").
+		Columns("username", "password_hash").
+		Values(username, passwordHash)
+
+	sqlRaw, args, _ := query.ToSql()
+	_, err := r.db.Exec(sqlRaw, args...)
+	return err
+}
+
 func (r *Repository) GetUserByUsername(username string) (*models.User, error) {
 	query := r.sq.Select("id", "username", "password_hash", "created_at").
 		From("users").

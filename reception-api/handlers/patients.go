@@ -71,5 +71,5 @@ func (h *PatientHandler) DeletePatient(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusNoContent, nil)
+	c.JSON(http.StatusOK, gin.H{"message": "patient deleted", "id": id})
 }

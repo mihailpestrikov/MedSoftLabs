@@ -33,15 +33,36 @@ func Setup(cfg *config.Config) (*sql.DB, error) {
 }
 
 func RunMigrations(db *sql.DB) error {
-	migration, err := os.ReadFile("migrations/001_init.sql")
+	files, err := os.ReadDir("migrations")
 	if err != nil {
-		return fmt.Errorf("failed to read migration: %w", err)
+		return fmt.Errorf("failed to read migrations directory: %w", err)
 	}
 
-	if _, err := db.Exec(string(migration)); err != nil {
-		return fmt.Errorf("failed to run migration: %w", err)
+	var migrationFiles []string
+	for _, file := range files {
+		if !file.IsDir() && len(file.Name()) > 4 && file.Name()[len(file.Name())-4:] == ".sql" {
+			migrationFiles = append(migrationFiles, "migrations/"+file.Name())
+		}
 	}
 
-	log.Println("Migrations applied successfully")
+	if len(migrationFiles) == 0 {
+		log.Println("No migrations found")
+		return nil
+	}
+
+	for _, migrationFile := range migrationFiles {
+		migration, err := os.ReadFile(migrationFile)
+		if err != nil {
+			return fmt.Errorf("failed to read migration %s: %w", migrationFile, err)
+		}
+
+		if _, err := db.Exec(string(migration)); err != nil {
+			return fmt.Errorf("failed to run migration %s: %w", migrationFile, err)
+		}
+
+		log.Printf("Applied migration: %s", migrationFile)
+	}
+
+	log.Println("All migrations applied successfully")
 	return nil
 }

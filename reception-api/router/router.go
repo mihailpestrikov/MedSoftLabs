@@ -28,6 +28,7 @@ func Setup(authHandler *handlers.AuthHandler, patientHandler *handlers.PatientHa
 	{
 		auth := api.Group("/auth")
 		{
+			auth.POST("/register", authHandler.Register)
 			auth.POST("/login", authHandler.Login)
 			auth.POST("/refresh", authHandler.Refresh)
 			auth.POST("/logout", authHandler.Logout)

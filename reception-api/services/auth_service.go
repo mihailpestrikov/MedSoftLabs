@@ -43,6 +43,19 @@ func (s *AuthService) Login(username, password string) (accessToken, refreshToke
 	return accessToken, refreshToken, nil
 }
 
+func (s *AuthService) Register(username, password string) error {
+	if username == "" || password == "" {
+		return errors.New("username and password are required")
+	}
+
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+
+	return s.repo.CreateUser(username, string(hash))
+}
+
 func (s *AuthService) RefreshToken(refreshToken string) (string, error) {
 	claims, err := s.jwtService.ValidateToken(refreshToken)
 	if err != nil {

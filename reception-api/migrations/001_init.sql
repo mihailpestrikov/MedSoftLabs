@@ -26,5 +26,5 @@ CREATE TABLE IF NOT EXISTS hl7_messages (
     ack_received_at TIMESTAMP
 );
 
-CREATE INDEX idx_hl7_message_id ON hl7_messages(message_id);
-CREATE INDEX idx_patient_his_id ON patients(his_patient_id);
+CREATE INDEX IF NOT EXISTS idx_hl7_message_id ON hl7_messages(message_id);
+CREATE INDEX IF NOT EXISTS idx_patient_his_id ON patients(his_patient_id);
