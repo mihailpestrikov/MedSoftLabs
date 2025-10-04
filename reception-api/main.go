@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"log"
 	"net/http"
 	"os"
@@ -19,15 +20,11 @@ import (
 func main() {
 	cfg := config.Load()
 
-	db, err := database.Connect(cfg)
+	db, err := database.Setup(cfg)
 	if err != nil {
-		log.Fatalf("Failed to connect to database: %v", err)
+		log.Fatalf("Failed to setup database: %v", err)
 	}
 	defer db.Close()
-
-	if err := database.RunMigrations(db); err != nil {
-		log.Fatalf("Failed to run migrations: %v", err)
-	}
 
 	repo := database.New(db)
 
@@ -50,7 +47,7 @@ func main() {
 
 	go func() {
 		log.Printf("Starting HTTPS server on port %s", cfg.ServerPort)
-		if err := srv.ListenAndServeTLS(cfg.TLSCertPath, cfg.TLSKeyPath); err != nil && err != http.ErrServerClosed {
+		if err := srv.ListenAndServeTLS(cfg.TLSCertPath, cfg.TLSKeyPath); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			log.Fatalf("Failed to start server: %v", err)
 		}
 	}()

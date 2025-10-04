@@ -10,7 +10,7 @@ import (
 	_ "github.com/lib/pq"
 )
 
-func Connect(cfg *config.Config) (*sql.DB, error) {
+func Setup(cfg *config.Config) (*sql.DB, error) {
 	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
 		cfg.DBHost, cfg.DBPort, cfg.DBUser, cfg.DBPassword, cfg.DBName)
 
@@ -24,6 +24,11 @@ func Connect(cfg *config.Config) (*sql.DB, error) {
 	}
 
 	log.Printf("Connected to PostgreSQL: %s:%s/%s", cfg.DBHost, cfg.DBPort, cfg.DBName)
+
+	if err := RunMigrations(db); err != nil {
+		return nil, fmt.Errorf("failed to run migrations: %w", err)
+	}
+
 	return db, nil
 }
 
