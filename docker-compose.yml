@@ -1,0 +1,52 @@
+services:
+  reception-db:
+    image: postgres:15-alpine
+    container_name: reception-db
+    environment:
+      POSTGRES_USER: reception_user
+      POSTGRES_PASSWORD: reception_password
+      POSTGRES_DB: reception_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - reception_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U reception_user -d reception_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app-network
+
+  reception-api:
+    build:
+      context: ./reception-api
+      dockerfile: Dockerfile
+    container_name: reception-api
+    ports:
+      - "8080:8080"
+    environment:
+      RECEPTION_DB_HOST: reception-db
+      RECEPTION_DB_PORT: 5432
+      RECEPTION_DB_USER: reception_user
+      RECEPTION_DB_PASSWORD: reception_password
+      RECEPTION_DB_NAME: reception_db
+      JWT_SECRET: super-secret-jwt-key-change-in-production
+      JWT_ACCESS_TOKEN_DURATION: 15m
+      JWT_REFRESH_TOKEN_DURATION: 168h
+      TLS_CERT_PATH: /app/certs/server.crt
+      TLS_KEY_PATH: /app/certs/server.key
+    volumes:
+      - ./certs:/app/certs:ro
+    depends_on:
+      reception-db:
+        condition: service_healthy
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  reception_db_data:
