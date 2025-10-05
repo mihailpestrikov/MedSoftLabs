@@ -49,8 +49,8 @@ func (r *Repository) GetUserByUsername(username string) (*models.User, error) {
 
 func (r *Repository) CreatePatient(patient models.Patient) (int, error) {
 	query := r.sq.Insert("patients").
-		Columns("first_name", "last_name", "date_of_birth").
-		Values(patient.FirstName, patient.LastName, patient.DateOfBirth).
+		Columns("first_name", "last_name", "middle_name", "date_of_birth", "gender").
+		Values(patient.FirstName, patient.LastName, patient.MiddleName, patient.DateOfBirth, patient.Gender).
 		Suffix("RETURNING id")
 
 	sqlRaw, args, _ := query.ToSql()
@@ -60,7 +60,7 @@ func (r *Repository) CreatePatient(patient models.Patient) (int, error) {
 }
 
 func (r *Repository) GetAllPatients() ([]models.Patient, error) {
-	query := r.sq.Select("id", "his_patient_id", "first_name", "last_name", "date_of_birth", "created_at", "updated_at").
+	query := r.sq.Select("id", "his_patient_id", "first_name", "last_name", "middle_name", "date_of_birth", "gender", "created_at", "updated_at").
 		From("patients").
 		OrderBy("created_at DESC")
 
@@ -74,7 +74,7 @@ func (r *Repository) GetAllPatients() ([]models.Patient, error) {
 	var patients []models.Patient
 	for rows.Next() {
 		var p models.Patient
-		err := rows.Scan(&p.ID, &p.HISPatientID, &p.FirstName, &p.LastName, &p.DateOfBirth, &p.CreatedAt, &p.UpdatedAt)
+		err := rows.Scan(&p.ID, &p.HISPatientID, &p.FirstName, &p.LastName, &p.MiddleName, &p.DateOfBirth, &p.Gender, &p.CreatedAt, &p.UpdatedAt)
 		if err != nil {
 			return nil, err
 		}
@@ -85,7 +85,7 @@ func (r *Repository) GetAllPatients() ([]models.Patient, error) {
 }
 
 func (r *Repository) GetPatientByID(id int) (*models.Patient, error) {
-	query := r.sq.Select("id", "his_patient_id", "first_name", "last_name", "date_of_birth", "created_at", "updated_at").
+	query := r.sq.Select("id", "his_patient_id", "first_name", "last_name", "middle_name", "date_of_birth", "gender", "created_at", "updated_at").
 		From("patients").
 		Where(sq.Eq{"id": id})
 
@@ -93,7 +93,7 @@ func (r *Repository) GetPatientByID(id int) (*models.Patient, error) {
 	row := r.db.QueryRow(sqlRaw, args...)
 
 	var p models.Patient
-	err := row.Scan(&p.ID, &p.HISPatientID, &p.FirstName, &p.LastName, &p.DateOfBirth, &p.CreatedAt, &p.UpdatedAt)
+	err := row.Scan(&p.ID, &p.HISPatientID, &p.FirstName, &p.LastName, &p.MiddleName, &p.DateOfBirth, &p.Gender, &p.CreatedAt, &p.UpdatedAt)
 	if err != nil {
 		return nil, err
 	}
