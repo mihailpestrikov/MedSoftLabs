@@ -44,9 +44,49 @@ services:
     networks:
       - app-network
 
+  hospital-db:
+    image: postgres:15-alpine
+    container_name: hospital-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: hospital_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - hospital_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d hospital_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app-network
+
+  hospital-srv:
+    build:
+      context: ./hospital-srv
+      dockerfile: Dockerfile
+    container_name: hospital-srv
+    ports:
+      - "8081:8081"
+    environment:
+      DB_HOST: hospital-db
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_NAME: hospital_db
+      SERVER_PORT: 8081
+    depends_on:
+      hospital-db:
+        condition: service_healthy
+    networks:
+      - app-network
+
 networks:
   app-network:
     driver: bridge
 
 volumes:
   reception_db_data:
+  hospital_db_data:
