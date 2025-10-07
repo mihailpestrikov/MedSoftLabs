@@ -1,18 +1,10 @@
 <script>
-  import { onMount, onDestroy } from 'svelte';
+  import { onMount } from 'svelte';
   import { patients, loading, error } from '../stores/patients.js';
-  import { getPatients, deletePatient } from '../services/api.js';
-
-  let refreshInterval;
-  let copiedId = null;
+  import { getPatients } from '../services/api.js';
 
   onMount(async () => {
     await loadPatients();
-    refreshInterval = setInterval(loadPatients, 5000);
-  });
-
-  onDestroy(() => {
-    if (refreshInterval) clearInterval(refreshInterval);
   });
 
   async function loadPatients() {
@@ -29,25 +21,16 @@
     }
   }
 
-  async function handleDelete(id) {
-    if (!confirm('Delete this patient?')) return;
-
-    try {
-      await deletePatient(id);
-      patients.update(p => p.filter(patient => patient.id !== id));
-    } catch (e) {
-      alert(`Failed to delete: ${e.message}`);
-    }
-  }
+  let copiedId = null;
 
   function formatDate(date) {
     return new Date(date).toLocaleDateString();
   }
 
-  async function copyHisId(hisId) {
+  async function copyUUID(uuid) {
     try {
-      await navigator.clipboard.writeText(hisId);
-      copiedId = hisId;
+      await navigator.clipboard.writeText(uuid);
+      copiedId = uuid;
       setTimeout(() => {
         copiedId = null;
       }, 2000);
@@ -60,8 +43,12 @@
 <div class="card">
   <div class="header-row">
     <div>
-      <h2>Patients</h2>
-      <p class="subtitle">{$patients.length} patient{$patients.length !== 1 ? 's' : ''} registered</p>
+      <h2>Registered Patients</h2>
+      <p class="subtitle">{$patients.length} patient{$patients.length !== 1 ? 's' : ''} in system</p>
+    </div>
+    <div class="status-badge">
+      <span class="status-dot"></span>
+      Live
     </div>
   </div>
 
@@ -69,8 +56,8 @@
     <div class="error">{$error}</div>
   {/if}
 
-  {#if $loading && $patients.length === 0}
-    <p class="loading">Loading...</p>
+  {#if $loading}
+    <p class="loading">Loading patients...</p>
   {:else if $patients.length === 0}
     <div class="empty-state">
       <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -80,7 +67,7 @@
         <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
       </svg>
       <h3>No patients yet</h3>
-      <p>Add your first patient above</p>
+      <p>Waiting for first patient registration</p>
     </div>
   {:else}
     <div class="table-container">
@@ -89,7 +76,7 @@
           <tr>
             <th>
               <div class="th-content">
-                <span>ID</span>
+                <span>Patient ID</span>
               </div>
             </th>
             <th>
@@ -109,12 +96,7 @@
             </th>
             <th>
               <div class="th-content">
-                <span>HIS ID</span>
-              </div>
-            </th>
-            <th>
-              <div class="th-content">
-                <span>Actions</span>
+                <span>Registered</span>
               </div>
             </th>
           </tr>
@@ -123,7 +105,21 @@
           {#each $patients as patient, i}
             <tr style="animation-delay: {i * 50}ms">
               <td>
-                <div class="id-badge">{patient.id}</div>
+                <div class="uuid-cell">
+                  <button
+                    class="uuid-badge"
+                    class:copied={copiedId === patient.id}
+                    on:click={() => copyUUID(patient.id)}
+                    title="Click to copy full UUID"
+                  >
+                    {#if copiedId === patient.id}
+                      Copied
+                    {:else}
+                      {patient.id.slice(0, 8)}
+                    {/if}
+                  </button>
+                  <span class="uuid-full">{patient.id}</span>
+                </div>
               </td>
               <td>
                 <div class="name-cell">
@@ -137,32 +133,7 @@
               <td>
                 <span class="gender-badge gender-{patient.gender}">{patient.gender}</span>
               </td>
-              <td>
-                {#if patient.his_patient_id}
-                  <button
-                    class="his-id-badge"
-                    class:copied={copiedId === patient.his_patient_id}
-                    on:click={() => copyHisId(patient.his_patient_id)}
-                    title="Click to copy HIS ID"
-                  >
-                    {#if copiedId === patient.his_patient_id}
-                      Copied
-                    {:else}
-                      {patient.his_patient_id.slice(0, 8)}
-                    {/if}
-                  </button>
-                {:else}
-                  <span class="pending">Syncing...</span>
-                {/if}
-              </td>
-              <td>
-                <button
-                  class="delete-btn"
-                  on:click={() => handleDelete(patient.id)}
-                >
-                  Delete
-                </button>
-              </td>
+              <td class="date-cell">{formatDate(patient.created_at)}</td>
             </tr>
           {/each}
         </tbody>
@@ -192,6 +163,32 @@
   .subtitle {
     color: var(--text-light);
     font-size: 0.875rem;
+  }
+
+  .status-badge {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+    color: white;
+    border-radius: 100px;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    box-shadow: 0 4px 12px rgba(20, 184, 166, 0.25);
+  }
+
+  .status-dot {
+    width: 8px;
+    height: 8px;
+    background: white;
+    border-radius: 50%;
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
   }
 
   .empty-state {
@@ -243,11 +240,54 @@
     }
   }
 
-  .id-badge {
+  .uuid-cell {
+    position: relative;
+  }
+
+  .uuid-badge {
     font-family: 'Courier New', monospace;
-    font-size: 1rem;
-    font-weight: 700;
-    color: var(--text);
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--primary);
+    background: linear-gradient(135deg, rgba(20, 184, 166, 0.1) 0%, rgba(6, 182, 212, 0.1) 100%);
+    padding: 0.25rem 0.625rem;
+    border-radius: 4px;
+    border: 1px solid rgba(20, 184, 166, 0.2);
+    display: inline-block;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    outline: none;
+    min-width: 80px;
+    text-align: center;
+  }
+
+  .uuid-badge:focus-visible {
+    box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.2);
+  }
+
+  .uuid-badge.copied {
+    pointer-events: none;
+  }
+
+  .check-icon {
+    font-weight: bold;
+    font-size: 0.875rem;
+  }
+
+  .uuid-badge:hover {
+    background: linear-gradient(135deg, rgba(20, 184, 166, 0.2) 0%, rgba(6, 182, 212, 0.2) 100%);
+    border-color: rgba(20, 184, 166, 0.4);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(20, 184, 166, 0.15);
+  }
+
+  .uuid-badge:active {
+    transform: translateY(0);
+    box-shadow: none;
+  }
+
+  .uuid-full {
+    display: none;
   }
 
   .name-cell {
@@ -285,67 +325,8 @@
     color: #db2777;
   }
 
-  .his-id-badge {
-    font-family: 'Courier New', monospace;
-    font-size: 0.75rem;
-    font-weight: 600;
-    color: var(--success);
-    background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(5, 150, 105, 0.1) 100%);
-    padding: 0.25rem 0.625rem;
-    border-radius: 4px;
-    border: 1px solid rgba(16, 185, 129, 0.2);
-    display: inline-block;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    outline: none;
-    min-width: 80px;
-    text-align: center;
-  }
-
-  .his-id-badge:hover {
-    background: linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(5, 150, 105, 0.2) 100%);
-    border-color: rgba(16, 185, 129, 0.4);
-    transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(16, 185, 129, 0.15);
-  }
-
-  .his-id-badge:active {
-    transform: translateY(0);
-    box-shadow: none;
-  }
-
-  .his-id-badge:focus-visible {
-    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
-  }
-
-  .his-id-badge.copied {
-    pointer-events: none;
-  }
-
-  .pending {
-    color: var(--text-light);
-    font-size: 0.875rem;
-    font-style: italic;
-  }
-
-  .delete-btn {
-    padding: 0.375rem 0.875rem;
-    background: transparent;
-    color: var(--error);
-    border: 1px solid currentColor;
-    font-size: 0.8125rem;
-  }
-
-  .delete-btn:hover {
-    background: var(--error);
-    color: white;
-  }
-
-  .loading {
-    text-align: center;
-    padding: 3rem 2rem;
-    color: var(--text-light);
-    font-size: 0.9375rem;
+  .date-cell {
+    color: var(--text-secondary);
   }
 
   .error {
