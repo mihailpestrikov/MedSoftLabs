@@ -8,6 +8,7 @@ import (
 	"hospital-srv/handlers"
 	"hospital-srv/router"
 	"hospital-srv/services"
+	"hospital-srv/websocket"
 	"log"
 	"net/http"
 	"os"
@@ -25,11 +26,14 @@ func main() {
 	}
 	defer db.Close()
 
+	hub := websocket.NewHub()
+	go hub.Run()
+
 	repo := database.New(db)
-	patientService := services.New(repo)
+	patientService := services.New(repo, hub)
 	patientHandler := handlers.New(patientService)
 
-	r := router.Setup(patientHandler)
+	r := router.Setup(patientHandler, hub)
 
 	srv := &http.Server{
 		Addr:    ":" + cfg.ServerPort,

@@ -1,10 +1,35 @@
 <script>
-  import { onMount } from 'svelte';
+  import { onMount, onDestroy } from 'svelte';
   import { patients, loading, error } from '../stores/patients.js';
   import { getPatients } from '../services/api.js';
+  import { WebSocketService } from '../services/websocket.js';
+
+  let ws;
 
   onMount(async () => {
     await loadPatients();
+
+    const wsUrl = import.meta.env.DEV
+      ? 'ws://localhost:8081/ws'
+      : `ws://${window.location.host}/ws`;
+
+    ws = new WebSocketService(wsUrl);
+
+    ws.on('patient_created', (patient) => {
+      patients.update(p => [patient, ...p]);
+    });
+
+    ws.on('patient_deleted', ({ id }) => {
+      patients.update(p => p.filter(patient => patient.id !== id));
+    });
+
+    ws.connect();
+  });
+
+  onDestroy(() => {
+    if (ws) {
+      ws.disconnect();
+    }
   });
 
   async function loadPatients() {
@@ -13,7 +38,8 @@
 
     try {
       const data = await getPatients();
-      patients.set(data);
+      const sorted = data.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+      patients.set(sorted);
     } catch (e) {
       error.set(e.message);
     } finally {

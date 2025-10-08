@@ -60,3 +60,26 @@ func (h *PatientHandler) DeletePatient(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "patient deleted successfully"})
 }
+
+func (h *PatientHandler) BatchDeletePatients(c *gin.Context) {
+	var req struct {
+		IDs []string `json:"ids" binding:"required"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if len(req.IDs) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ids array cannot be empty"})
+		return
+	}
+
+	if err := h.service.DeletePatients(req.IDs); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "patients deleted successfully", "count": len(req.IDs)})
+}

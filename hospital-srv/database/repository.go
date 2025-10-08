@@ -79,3 +79,10 @@ func (r *Repository) DeletePatient(id string) error {
 	_, err := r.db.Exec(sqlRaw, args...)
 	return err
 }
+
+func (r *Repository) DeletePatients(ids []string) error {
+	query := r.sq.Delete("patients").Where(sq.Eq{"id": ids})
+	sqlRaw, args, _ := query.ToSql()
+	_, err := r.db.Exec(sqlRaw, args...)
+	return err
+}

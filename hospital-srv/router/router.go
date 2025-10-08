@@ -2,11 +2,12 @@ package router
 
 import (
 	"hospital-srv/handlers"
+	"hospital-srv/websocket"
 
 	"github.com/gin-gonic/gin"
 )
 
-func Setup(patientHandler *handlers.PatientHandler) *gin.Engine {
+func Setup(patientHandler *handlers.PatientHandler, hub *websocket.Hub) *gin.Engine {
 	router := gin.Default()
 
 	router.Use(func(c *gin.Context) {
@@ -23,6 +24,10 @@ func Setup(patientHandler *handlers.PatientHandler) *gin.Engine {
 		c.Next()
 	})
 
+	router.GET("/ws", func(c *gin.Context) {
+		websocket.ServeWs(hub, c.Writer, c.Request)
+	})
+
 	api := router.Group("/api")
 	{
 		patients := api.Group("/patients")
@@ -30,6 +35,7 @@ func Setup(patientHandler *handlers.PatientHandler) *gin.Engine {
 			patients.GET("", patientHandler.GetAllPatients)
 			patients.GET("/:id", patientHandler.GetPatient)
 			patients.POST("", patientHandler.CreatePatient)
+			patients.POST("/batch-delete", patientHandler.BatchDeletePatients)
 			patients.DELETE("/:id", patientHandler.DeletePatient)
 		}
 	}
