@@ -3,11 +3,12 @@ package router
 import (
 	"reception-api/handlers"
 	"reception-api/middleware"
+	"reception-api/websocket"
 
 	"github.com/gin-gonic/gin"
 )
 
-func Setup(authHandler *handlers.AuthHandler, patientHandler *handlers.PatientHandler, jwtService *middleware.JWTService) *gin.Engine {
+func Setup(authHandler *handlers.AuthHandler, patientHandler *handlers.PatientHandler, jwtService *middleware.JWTService, hub *websocket.Hub) *gin.Engine {
 	router := gin.Default()
 
 	router.Use(func(c *gin.Context) {
@@ -22,6 +23,10 @@ func Setup(authHandler *handlers.AuthHandler, patientHandler *handlers.PatientHa
 		}
 
 		c.Next()
+	})
+
+	router.GET("/ws", func(c *gin.Context) {
+		websocket.ServeWs(hub, c.Writer, c.Request)
 	})
 
 	api := router.Group("/api")

@@ -13,6 +13,7 @@ import (
 	"reception-api/middleware"
 	"reception-api/router"
 	"reception-api/services"
+	"reception-api/websocket"
 	"syscall"
 	"time"
 )
@@ -26,6 +27,9 @@ func main() {
 	}
 	defer db.Close()
 
+	hub := websocket.NewHub()
+	go hub.Run()
+
 	repo := database.New(db)
 
 	accessExpiry, _ := time.ParseDuration(cfg.JWTAccessExpiry)
@@ -33,12 +37,12 @@ func main() {
 	jwtService := middleware.New(cfg.JWTSecret, accessExpiry, refreshExpiry)
 
 	authService := services.NewAuthService(repo, jwtService)
-	patientService := services.NewPatientService(repo)
+	patientService := services.NewPatientService(repo, hub)
 
 	authHandler := handlers.NewAuthHandler(authService)
 	patientHandler := handlers.NewPatientHandler(patientService)
 
-	r := router.Setup(authHandler, patientHandler, jwtService)
+	r := router.Setup(authHandler, patientHandler, jwtService, hub)
 
 	srv := &http.Server{
 		Addr:    ":" + cfg.ServerPort,

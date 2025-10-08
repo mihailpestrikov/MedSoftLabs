@@ -4,14 +4,19 @@ import (
 	"errors"
 	"reception-api/database"
 	"reception-api/models"
+	"reception-api/websocket"
 )
 
 type PatientService struct {
 	repo *database.Repository
+	hub  *websocket.Hub
 }
 
-func NewPatientService(repo *database.Repository) *PatientService {
-	return &PatientService{repo: repo}
+func NewPatientService(repo *database.Repository, hub *websocket.Hub) *PatientService {
+	return &PatientService{
+		repo: repo,
+		hub:  hub,
+	}
 }
 
 func (s *PatientService) CreatePatient(patient models.Patient) (*models.Patient, error) {
@@ -25,6 +30,9 @@ func (s *PatientService) CreatePatient(patient models.Patient) (*models.Patient,
 	}
 
 	patient.ID = id
+
+	s.hub.BroadcastPatientCreated(&patient)
+
 	return &patient, nil
 }
 
@@ -56,5 +64,11 @@ func (s *PatientService) DeletePatient(id int) error {
 		return errors.New("patient not found")
 	}
 
-	return s.repo.DeletePatient(id)
+	if err := s.repo.DeletePatient(id); err != nil {
+		return err
+	}
+
+	s.hub.BroadcastPatientDeleted(id)
+
+	return nil
 }

@@ -2,17 +2,41 @@
   import { onMount, onDestroy } from 'svelte';
   import { patients, loading, error } from '../stores/patients.js';
   import { getPatients, deletePatient } from '../services/api.js';
+  import { WebSocketService } from '../services/websocket.js';
 
-  let refreshInterval;
+  let ws;
   let copiedId = null;
 
   onMount(async () => {
     await loadPatients();
-    refreshInterval = setInterval(loadPatients, 5000);
+
+    const wsUrl = import.meta.env.DEV
+      ? 'wss://localhost:8080/ws'
+      : `wss://${window.location.host}/ws`;
+
+    ws = new WebSocketService(wsUrl);
+
+    ws.on('patient_created', (patient) => {
+      patients.update(p => [...p, patient]);
+    });
+
+    ws.on('patient_deleted', ({ id }) => {
+      patients.update(p => p.filter(patient => patient.id !== id));
+    });
+
+    ws.on('patient_his_id_update', ({ id, his_patient_id }) => {
+      patients.update(p => p.map(patient =>
+        patient.id === id ? { ...patient, his_patient_id } : patient
+      ));
+    });
+
+    ws.connect();
   });
 
   onDestroy(() => {
-    if (refreshInterval) clearInterval(refreshInterval);
+    if (ws) {
+      ws.disconnect();
+    }
   });
 
   async function loadPatients() {
