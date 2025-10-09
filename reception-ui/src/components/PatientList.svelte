@@ -361,6 +361,7 @@
     color: var(--error);
     border: 1px solid currentColor;
     font-size: 0.8125rem;
+    outline: none;
   }
 
   .delete-btn:hover {
