@@ -17,7 +17,7 @@
     ws = new WebSocketService(wsUrl);
 
     ws.on('patient_created', (patient) => {
-      patients.update(p => [...p, patient]);
+      patients.update(p => [patient, ...p]);
     });
 
     ws.on('patient_deleted', ({ id }) => {
@@ -45,7 +45,8 @@
 
     try {
       const data = await getPatients();
-      patients.set(data);
+      const sorted = data.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+      patients.set(sorted);
     } catch (e) {
       error.set(e.message);
     } finally {
@@ -221,6 +222,7 @@
   .empty-state {
     text-align: center;
     padding: 4rem 2rem;
+    min-width: 600px;
   }
 
   .empty-state svg {
@@ -243,6 +245,7 @@
   .table-container {
     overflow-x: auto;
     border-radius: var(--radius);
+    min-width: 600px;
   }
 
   .th-content {

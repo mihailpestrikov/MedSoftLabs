@@ -36,6 +36,7 @@ services:
       JWT_REFRESH_TOKEN_DURATION: 168h
       TLS_CERT_PATH: /app/certs/server.crt
       TLS_KEY_PATH: /app/certs/server.key
+      HIS_MLLP_ADDRESS: hospital-srv:2575
     volumes:
       - ./certs:/app/certs:ro
     depends_on:
@@ -70,6 +71,7 @@ services:
     container_name: hospital-srv
     ports:
       - "8081:8081"
+      - "2575:2575"
     environment:
       DB_HOST: hospital-db
       DB_PORT: 5432
@@ -77,6 +79,11 @@ services:
       DB_PASSWORD: postgres
       DB_NAME: hospital_db
       SERVER_PORT: 8081
+      MLLP_PORT: 2575
+      TLS_CERT_PATH: /app/certs/server.crt
+      TLS_KEY_PATH: /app/certs/server.key
+    volumes:
+      - ./certs:/app/certs:ro
     depends_on:
       hospital-db:
         condition: service_healthy

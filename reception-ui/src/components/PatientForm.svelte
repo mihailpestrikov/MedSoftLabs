@@ -31,15 +31,13 @@
     loading = true;
 
     try {
-      const newPatient = await createPatient({
+      await createPatient({
         first_name: firstName,
         last_name: lastName,
         middle_name: middleName || undefined,
         date_of_birth: dateOfBirth,
         gender,
       });
-
-      patients.update(p => [...p, newPatient]);
 
       firstName = '';
       lastName = '';

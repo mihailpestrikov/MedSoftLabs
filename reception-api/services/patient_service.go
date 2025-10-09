@@ -2,20 +2,25 @@ package services
 
 import (
 	"errors"
+	"log"
 	"reception-api/database"
+	"reception-api/hl7"
 	"reception-api/models"
 	"reception-api/websocket"
+	"strings"
 )
 
 type PatientService struct {
-	repo *database.Repository
-	hub  *websocket.Hub
+	repo       *database.Repository
+	hub        *websocket.Hub
+	mllpClient *hl7.MLLPClient
 }
 
-func NewPatientService(repo *database.Repository, hub *websocket.Hub) *PatientService {
+func NewPatientService(repo *database.Repository, hub *websocket.Hub, mllpClient *hl7.MLLPClient) *PatientService {
 	return &PatientService{
-		repo: repo,
-		hub:  hub,
+		repo:       repo,
+		hub:        hub,
+		mllpClient: mllpClient,
 	}
 }
 
@@ -33,7 +38,44 @@ func (s *PatientService) CreatePatient(patient models.Patient) (*models.Patient,
 
 	s.hub.BroadcastPatientCreated(&patient)
 
+	go s.sendToHIS(&patient)
+
 	return &patient, nil
+}
+
+func (s *PatientService) sendToHIS(patient *models.Patient) {
+	messageID, hl7Message := hl7.GenerateADTA04(patient)
+
+	log.Printf("Sending patient %d to HIS via HL7 (MessageID: %s)", patient.ID, messageID)
+	log.Printf("HL7 ADT^A04: %s", strings.ReplaceAll(string(hl7Message), "\r", "|"))
+
+	ack, err := s.mllpClient.SendMessage(hl7Message)
+	if err != nil {
+		log.Printf("Failed to send HL7 message: %v", err)
+		return
+	}
+
+	log.Printf("Received ACK: %s", strings.ReplaceAll(string(ack), "\r", "|"))
+
+	originalMsgID, hisPatientID, err := hl7.ParseACK(ack)
+	if err != nil {
+		log.Printf("Failed to parse ACK: %v", err)
+		return
+	}
+
+	if originalMsgID != messageID {
+		log.Printf("ACK MessageID mismatch: expected %s, got %s", messageID, originalMsgID)
+		return
+	}
+
+	log.Printf("Received HIS Patient ID: %s for local patient %d", hisPatientID, patient.ID)
+
+	if err := s.repo.UpdatePatientHISID(patient.ID, hisPatientID); err != nil {
+		log.Printf("Failed to update HIS Patient ID: %v", err)
+		return
+	}
+
+	s.hub.BroadcastPatientHISIDUpdate(patient.ID, hisPatientID)
 }
 
 func (s *PatientService) GetAllPatients() ([]models.Patient, error) {
@@ -59,7 +101,7 @@ func (s *PatientService) GetPatientByID(id int) (*models.Patient, error) {
 }
 
 func (s *PatientService) DeletePatient(id int) error {
-	_, err := s.repo.GetPatientByID(id)
+	patient, err := s.repo.GetPatientByID(id)
 	if err != nil {
 		return errors.New("patient not found")
 	}
@@ -70,5 +112,24 @@ func (s *PatientService) DeletePatient(id int) error {
 
 	s.hub.BroadcastPatientDeleted(id)
 
+	if patient.HISPatientID != nil {
+		go s.sendDeleteToHIS(id, *patient.HISPatientID)
+	}
+
 	return nil
+}
+
+func (s *PatientService) sendDeleteToHIS(patientID int, hisPatientID string) {
+	messageID, hl7Message := hl7.GenerateADTA23(patientID, hisPatientID)
+
+	log.Printf("Sending delete for patient %d to HIS via HL7 (MessageID: %s)", patientID, messageID)
+	log.Printf("HL7 ADT^A23: %s", strings.ReplaceAll(string(hl7Message), "\r", "|"))
+
+	ack, err := s.mllpClient.SendMessage(hl7Message)
+	if err != nil {
+		log.Printf("Failed to send HL7 delete message: %v", err)
+		return
+	}
+
+	log.Printf("Received ACK: %s", strings.ReplaceAll(string(ack), "\r", "|"))
 }

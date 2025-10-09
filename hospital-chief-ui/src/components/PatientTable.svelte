@@ -220,6 +220,7 @@
   .empty-state {
     text-align: center;
     padding: 4rem 2rem;
+    min-width: 600px;
   }
 
   .empty-state svg {

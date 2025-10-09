@@ -10,6 +10,7 @@ import (
 	"reception-api/config"
 	"reception-api/database"
 	"reception-api/handlers"
+	"reception-api/hl7"
 	"reception-api/middleware"
 	"reception-api/router"
 	"reception-api/services"
@@ -36,8 +37,13 @@ func main() {
 	refreshExpiry, _ := time.ParseDuration(cfg.JWTRefreshExpiry)
 	jwtService := middleware.New(cfg.JWTSecret, accessExpiry, refreshExpiry)
 
+	mllpClient, err := hl7.NewMLLPClient(cfg.HISAddress, cfg.TLSCertPath)
+	if err != nil {
+		log.Fatalf("Failed to create MLLP client: %v", err)
+	}
+
 	authService := services.NewAuthService(repo, jwtService)
-	patientService := services.NewPatientService(repo, hub)
+	patientService := services.NewPatientService(repo, hub, mllpClient)
 
 	authHandler := handlers.NewAuthHandler(authService)
 	patientHandler := handlers.NewPatientHandler(patientService)

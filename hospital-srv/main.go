@@ -6,6 +6,7 @@ import (
 	"hospital-srv/config"
 	"hospital-srv/database"
 	"hospital-srv/handlers"
+	"hospital-srv/hl7"
 	"hospital-srv/router"
 	"hospital-srv/services"
 	"hospital-srv/websocket"
@@ -40,8 +41,17 @@ func main() {
 		Handler: r,
 	}
 
+	hl7Handler := hl7.NewHL7Handler(patientService)
+	mllpListener, err := hl7.NewMLLPListener(cfg.MLLPPort, cfg.TLSCertPath, cfg.TLSKeyPath, hl7Handler.HandleMessage)
+	if err != nil {
+		log.Fatalf("Failed to start MLLP listener: %v", err)
+	}
+	defer mllpListener.Close()
+
+	go mllpListener.Start()
+
 	go func() {
-		log.Printf("Server starting on port %s", cfg.ServerPort)
+		log.Printf("HTTP server starting on port %s", cfg.ServerPort)
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			log.Fatalf("Server failed: %v", err)
 		}
