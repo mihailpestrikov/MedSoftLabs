@@ -38,12 +38,12 @@ func (s *PatientService) CreatePatient(patient models.Patient) (*models.Patient,
 
 	s.hub.BroadcastPatientCreated(&patient)
 
-	go s.sendToHIS(&patient)
+	go s.sendCreateToHIS(&patient)
 
 	return &patient, nil
 }
 
-func (s *PatientService) sendToHIS(patient *models.Patient) {
+func (s *PatientService) sendCreateToHIS(patient *models.Patient) {
 	messageID, hl7Message := hl7.GenerateADTA04(patient)
 
 	log.Printf("Sending patient %d to HIS via HL7 (MessageID: %s)", patient.ID, messageID)
