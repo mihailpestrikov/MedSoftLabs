@@ -34,7 +34,7 @@ func GenerateADTA04(patient *models.Patient) (string, []byte) {
 	return messageID, []byte(message)
 }
 
-func GenerateADTA23(patientID int, hisPatientID string) (string, []byte) {
+func GenerateADTA23(hisPatientID string) (string, []byte) {
 	timestamp := time.Now().Format("20060102150405")
 	messageID := uuid.New().String()
 
