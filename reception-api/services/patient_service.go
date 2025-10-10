@@ -120,7 +120,7 @@ func (s *PatientService) DeletePatient(id int) error {
 }
 
 func (s *PatientService) sendDeleteToHIS(patientID int, hisPatientID string) {
-	messageID, hl7Message := hl7.GenerateADTA23(patientID, hisPatientID)
+	messageID, hl7Message := hl7.GenerateADTA23(hisPatientID)
 
 	log.Printf("Sending delete for patient %d to HIS via HL7 (MessageID: %s)", patientID, messageID)
 	log.Printf("HL7 ADT^A23: %s", strings.ReplaceAll(string(hl7Message), "\r", "|"))
