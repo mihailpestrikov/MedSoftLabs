@@ -6,8 +6,9 @@ import (
 )
 
 const (
-	MessageTypePatientCreated = "patient_created"
-	MessageTypePatientDeleted = "patient_deleted"
+	MessageTypePatientCreated   = "patient_created"
+	MessageTypePatientDeleted   = "patient_deleted"
+	MessageTypeEncounterCreated = "encounter_created"
 )
 
 type Message struct {
@@ -77,5 +78,12 @@ func (h *Hub) BroadcastPatientDeleted(id string) {
 	h.broadcast <- Message{
 		Type: MessageTypePatientDeleted,
 		Data: map[string]string{"id": id},
+	}
+}
+
+func (h *Hub) BroadcastEncounterCreated(encounter interface{}) {
+	h.broadcast <- Message{
+		Type: MessageTypeEncounterCreated,
+		Data: encounter,
 	}
 }

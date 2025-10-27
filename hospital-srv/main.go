@@ -5,6 +5,7 @@ import (
 	"errors"
 	"hospital-srv/config"
 	"hospital-srv/database"
+	"hospital-srv/fhir"
 	"hospital-srv/handlers"
 	"hospital-srv/hl7"
 	"hospital-srv/repository"
@@ -33,9 +34,13 @@ func main() {
 
 	repo := repository.New(db)
 	patientService := services.New(repo, hub)
-	patientHandler := handlers.New(patientService)
+	practitionerService := services.NewPractitionerService(repo)
+	encounterService := services.NewEncounterService(repo, hub)
 
-	r := router.Setup(patientHandler, hub)
+	patientHandler := handlers.New(patientService)
+	fhirServer := fhir.NewFHIRServer(practitionerService, encounterService)
+
+	r := router.Setup(patientHandler, hub, fhirServer)
 
 	srv := &http.Server{
 		Addr:    ":" + cfg.ServerPort,

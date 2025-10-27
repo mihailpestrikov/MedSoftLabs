@@ -1,13 +1,14 @@
 package router
 
 import (
+	"hospital-srv/fhir"
 	"hospital-srv/handlers"
 	"hospital-srv/websocket"
 
 	"github.com/gin-gonic/gin"
 )
 
-func Setup(patientHandler *handlers.PatientHandler, hub *websocket.Hub) *gin.Engine {
+func Setup(patientHandler *handlers.PatientHandler, hub *websocket.Hub, fhirServer *fhir.FHIRServer) *gin.Engine {
 	router := gin.Default()
 
 	router.Use(func(c *gin.Context) {
@@ -38,6 +39,15 @@ func Setup(patientHandler *handlers.PatientHandler, hub *websocket.Hub) *gin.Eng
 			patients.POST("/batch-delete", patientHandler.BatchDeletePatients)
 			patients.DELETE("/:id", patientHandler.DeletePatient)
 		}
+	}
+
+	fhirRoutes := router.Group("/fhir")
+	{
+		fhirRoutes.GET("/Practitioner", fhirServer.GetPractitioners)
+		fhirRoutes.GET("/Practitioner/:id", fhirServer.GetPractitioner)
+		fhirRoutes.POST("/Encounter", fhirServer.CreateEncounter)
+		fhirRoutes.GET("/Encounter", fhirServer.GetEncounters)
+		fhirRoutes.GET("/Encounter/:id", fhirServer.GetEncounter)
 	}
 
 	return router
