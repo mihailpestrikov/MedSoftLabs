@@ -9,6 +9,7 @@ import (
 	"os/signal"
 	"reception-api/config"
 	"reception-api/database"
+	"reception-api/fhir"
 	"reception-api/handlers"
 	"reception-api/hl7"
 	"reception-api/middleware"
@@ -42,13 +43,22 @@ func main() {
 		log.Fatalf("Failed to create MLLP client: %v", err)
 	}
 
+	fhirClient, err := fhir.NewFHIRClient("https://"+cfg.HISAddress, cfg.TLSCertPath)
+	if err != nil {
+		log.Fatalf("Failed to create FHIR client: %v", err)
+	}
+
 	authService := services.NewAuthService(repo, jwtService)
 	patientService := services.NewPatientService(repo, hub, mllpClient)
+	encounterService := services.NewEncounterService(repo, fhirClient)
+	practitionerService := services.NewPractitionerService(fhirClient)
 
 	authHandler := handlers.NewAuthHandler(authService)
 	patientHandler := handlers.NewPatientHandler(patientService)
+	encounterHandler := handlers.NewEncounterHandler(encounterService)
+	practitionerHandler := handlers.NewPractitionerHandler(practitionerService)
 
-	r := router.Setup(authHandler, patientHandler, jwtService, hub)
+	r := router.Setup(authHandler, patientHandler, encounterHandler, practitionerHandler, jwtService, hub)
 
 	srv := &http.Server{
 		Addr:    ":" + cfg.ServerPort,

@@ -8,7 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func Setup(authHandler *handlers.AuthHandler, patientHandler *handlers.PatientHandler, jwtService *middleware.JWTService, hub *websocket.Hub) *gin.Engine {
+func Setup(authHandler *handlers.AuthHandler, patientHandler *handlers.PatientHandler, encounterHandler *handlers.EncounterHandler, practitionerHandler *handlers.PractitionerHandler, jwtService *middleware.JWTService, hub *websocket.Hub) *gin.Engine {
 	router := gin.Default()
 
 	router.Use(func(c *gin.Context) {
@@ -46,6 +46,18 @@ func Setup(authHandler *handlers.AuthHandler, patientHandler *handlers.PatientHa
 			patients.POST("", patientHandler.CreatePatient)
 			patients.GET("/:id", patientHandler.GetPatient)
 			patients.DELETE("/:id", patientHandler.DeletePatient)
+		}
+
+		encounters := api.Group("/encounters")
+		encounters.Use(middleware.AuthMiddleware(jwtService))
+		{
+			encounters.POST("", encounterHandler.CreateEncounter)
+		}
+
+		practitioners := api.Group("/practitioners")
+		practitioners.Use(middleware.AuthMiddleware(jwtService))
+		{
+			practitioners.GET("", practitionerHandler.GetAllPractitioners)
 		}
 	}
 
