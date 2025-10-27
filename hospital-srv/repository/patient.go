@@ -1,23 +1,10 @@
-package database
+package repository
 
 import (
-	"database/sql"
 	"hospital-srv/models"
 
 	sq "github.com/Masterminds/squirrel"
 )
-
-type Repository struct {
-	db *sql.DB
-	sq sq.StatementBuilderType
-}
-
-func New(db *sql.DB) *Repository {
-	return &Repository{
-		db: db,
-		sq: sq.StatementBuilder.PlaceholderFormat(sq.Dollar),
-	}
-}
 
 func (r *Repository) CreatePatient(patient models.Patient) (string, error) {
 	query := r.sq.Insert("patients").

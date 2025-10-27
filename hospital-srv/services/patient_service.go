@@ -1,17 +1,17 @@
 package services
 
 import (
-	"hospital-srv/database"
 	"hospital-srv/models"
+	"hospital-srv/repository"
 	"hospital-srv/websocket"
 )
 
 type PatientService struct {
-	repo *database.Repository
+	repo *repository.Repository
 	hub  *websocket.Hub
 }
 
-func New(repo *database.Repository, hub *websocket.Hub) *PatientService {
+func New(repo *repository.Repository, hub *websocket.Hub) *PatientService {
 	return &PatientService{
 		repo: repo,
 		hub:  hub,

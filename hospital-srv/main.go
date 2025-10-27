@@ -7,6 +7,7 @@ import (
 	"hospital-srv/database"
 	"hospital-srv/handlers"
 	"hospital-srv/hl7"
+	"hospital-srv/repository"
 	"hospital-srv/router"
 	"hospital-srv/services"
 	"hospital-srv/websocket"
@@ -30,7 +31,7 @@ func main() {
 	hub := websocket.NewHub()
 	go hub.Run()
 
-	repo := database.New(db)
+	repo := repository.New(db)
 	patientService := services.New(repo, hub)
 	patientHandler := handlers.New(patientService)
 
