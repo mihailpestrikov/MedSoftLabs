@@ -38,6 +38,34 @@ func PractitionerToFHIR(p models.Practitioner) *practpb.Practitioner {
 	return resource
 }
 
+func FHIRToPractitioner(fhirPrac *practpb.Practitioner) (models.Practitioner, error) {
+	practitioner := models.Practitioner{}
+
+	if fhirPrac.Id != nil {
+		practitioner.ID = fhirPrac.Id.Value
+	}
+
+	if len(fhirPrac.Name) > 0 {
+		name := fhirPrac.Name[0]
+		if name.Family != nil {
+			practitioner.LastName = name.Family.Value
+		}
+		if len(name.Given) > 0 && name.Given[0] != nil {
+			practitioner.FirstName = name.Given[0].Value
+		}
+		if len(name.Given) > 1 && name.Given[1] != nil {
+			middleName := name.Given[1].Value
+			practitioner.MiddleName = &middleName
+		}
+	}
+
+	if len(fhirPrac.Qualification) > 0 && fhirPrac.Qualification[0].Code != nil && fhirPrac.Qualification[0].Code.Text != nil {
+		practitioner.Specialization = fhirPrac.Qualification[0].Code.Text.Value
+	}
+
+	return practitioner, nil
+}
+
 func EncounterToFHIR(e models.EncounterWithDetails) *encpb.Encounter {
 	startTime := timestamppb.New(e.StartTime)
 

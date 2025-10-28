@@ -47,3 +47,15 @@ func (r *Repository) GetPractitionerByID(id string) (*models.Practitioner, error
 
 	return &p, nil
 }
+
+func (r *Repository) CreatePractitioner(p models.Practitioner) (string, error) {
+	query := r.sq.Insert("practitioners").
+		Columns("first_name", "last_name", "middle_name", "specialization").
+		Values(p.FirstName, p.LastName, p.MiddleName, p.Specialization).
+		Suffix("RETURNING id")
+
+	sqlRaw, args, _ := query.ToSql()
+	var id string
+	err := r.db.QueryRow(sqlRaw, args...).Scan(&id)
+	return id, err
+}

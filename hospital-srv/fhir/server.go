@@ -10,6 +10,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	encpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/encounter_go_proto"
+	practpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/practitioner_go_proto"
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
@@ -69,6 +70,50 @@ func (s *FHIRServer) GetPractitioner(c *gin.Context) {
 	_ = json.Unmarshal(jsonBytes, &resourceMap)
 
 	c.JSON(http.StatusOK, resourceMap)
+}
+
+func (s *FHIRServer) CreatePractitioner(c *gin.Context) {
+	body, err := io.ReadAll(c.Request.Body)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to read request body"})
+		return
+	}
+
+	log.Printf("Received FHIR Practitioner: %s", strings.ReplaceAll(string(body), "\n", " "))
+
+	var fhirPractitioner practpb.Practitioner
+	if err := protojson.Unmarshal(body, &fhirPractitioner); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid FHIR Practitioner format"})
+		return
+	}
+
+	practitioner, err := FHIRToPractitioner(&fhirPractitioner)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	id, err := s.practitionerService.CreatePractitioner(practitioner)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	createdPractitioner, err := s.practitionerService.GetPractitionerByID(id)
+	if err != nil {
+		c.JSON(http.StatusCreated, gin.H{"id": id})
+		return
+	}
+
+	fhirResource := PractitionerToFHIR(*createdPractitioner)
+	jsonBytes, _ := protojson.Marshal(fhirResource)
+
+	log.Printf("Sending FHIR Practitioner response: %s", strings.ReplaceAll(string(jsonBytes), "\n", " "))
+
+	var resourceMap map[string]interface{}
+	_ = json.Unmarshal(jsonBytes, &resourceMap)
+
+	c.JSON(http.StatusCreated, resourceMap)
 }
 
 func (s *FHIRServer) CreateEncounter(c *gin.Context) {

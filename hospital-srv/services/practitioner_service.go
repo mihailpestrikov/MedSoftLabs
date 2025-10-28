@@ -22,3 +22,7 @@ func (s *PractitionerService) GetAllPractitioners() ([]models.Practitioner, erro
 func (s *PractitionerService) GetPractitionerByID(id string) (*models.Practitioner, error) {
 	return s.repo.GetPractitionerByID(id)
 }
+
+func (s *PractitionerService) CreatePractitioner(p models.Practitioner) (string, error) {
+	return s.repo.CreatePractitioner(p)
+}

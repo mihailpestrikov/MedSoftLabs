@@ -45,6 +45,7 @@ func Setup(patientHandler *handlers.PatientHandler, hub *websocket.Hub, fhirServ
 	{
 		fhirRoutes.GET("/Practitioner", fhirServer.GetPractitioners)
 		fhirRoutes.GET("/Practitioner/:id", fhirServer.GetPractitioner)
+		fhirRoutes.POST("/Practitioner", fhirServer.CreatePractitioner)
 		fhirRoutes.POST("/Encounter", fhirServer.CreateEncounter)
 		fhirRoutes.GET("/Encounter", fhirServer.GetEncounters)
 		fhirRoutes.GET("/Encounter/:id", fhirServer.GetEncounter)
