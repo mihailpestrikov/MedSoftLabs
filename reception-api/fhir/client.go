@@ -38,14 +38,22 @@ type FHIRBundle struct {
 }
 
 type FHIRPractitionerEntry struct {
-	ID            string              `json:"id"`
+	Resource FHIRPractitionerResource `json:"resource"`
+}
+
+type FHIRPractitionerResource struct {
+	ID            FHIRValue           `json:"id"`
 	Name          []FHIRName          `json:"name"`
 	Qualification []FHIRQualification `json:"qualification"`
 }
 
+type FHIRValue struct {
+	Value string `json:"value"`
+}
+
 type FHIRName struct {
-	Family string   `json:"family"`
-	Given  []string `json:"given"`
+	Family FHIRValue   `json:"family"`
+	Given  []FHIRValue `json:"given"`
 }
 
 type FHIRQualification struct {
@@ -53,7 +61,7 @@ type FHIRQualification struct {
 }
 
 type FHIRCode struct {
-	Text string `json:"text"`
+	Text FHIRValue `json:"text"`
 }
 
 func NewFHIRClient(baseURL string, certPath string) (*FHIRClient, error) {
@@ -150,9 +158,14 @@ func (c *FHIRClient) CreateEncounter(patientID string, practitionerID string, st
 		return "", fmt.Errorf("failed to parse response: %w", err)
 	}
 
-	encounterID, ok := result["id"].(string)
+	idField, ok := result["id"].(map[string]interface{})
 	if !ok {
 		return "", fmt.Errorf("no id in response")
+	}
+
+	encounterID, ok := idField["value"].(string)
+	if !ok {
+		return "", fmt.Errorf("invalid id format in response")
 	}
 
 	return encounterID, nil
@@ -187,27 +200,28 @@ func (c *FHIRClient) GetPractitioners() ([]Practitioner, error) {
 
 	var practitioners []Practitioner
 	for _, entry := range bundle.Entry {
+		resource := entry.Resource
 		firstName := ""
 		lastName := ""
 		middleName := ""
 		specialization := ""
 
-		if len(entry.Name) > 0 {
-			lastName = entry.Name[0].Family
-			if len(entry.Name[0].Given) > 0 {
-				firstName = entry.Name[0].Given[0]
+		if len(resource.Name) > 0 {
+			lastName = resource.Name[0].Family.Value
+			if len(resource.Name[0].Given) > 0 {
+				firstName = resource.Name[0].Given[0].Value
 			}
-			if len(entry.Name[0].Given) > 1 {
-				middleName = entry.Name[0].Given[1]
+			if len(resource.Name[0].Given) > 1 {
+				middleName = resource.Name[0].Given[1].Value
 			}
 		}
 
-		if len(entry.Qualification) > 0 {
-			specialization = entry.Qualification[0].Code.Text
+		if len(resource.Qualification) > 0 {
+			specialization = resource.Qualification[0].Code.Text.Value
 		}
 
 		practitioners = append(practitioners, Practitioner{
-			ID:             entry.ID,
+			ID:             resource.ID.Value,
 			FirstName:      firstName,
 			LastName:       lastName,
 			MiddleName:     middleName,

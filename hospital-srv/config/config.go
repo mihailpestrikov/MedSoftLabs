@@ -21,7 +21,7 @@ func Load() *Config {
 		DBUser:      getEnv("DB_USER", "postgres"),
 		DBPassword:  getEnv("DB_PASSWORD", "postgres"),
 		DBName:      getEnv("DB_NAME", "hospital_db"),
-		ServerPort:  getEnv("SERVER_PORT", "8081"),
+		ServerPort:  getEnv("SERVER_PORT", "9090"),
 		MLLPPort:    getEnv("MLLP_PORT", "2575"),
 		TLSCertPath: getEnv("TLS_CERT_PATH", "/app/certs/server.crt"),
 		TLSKeyPath:  getEnv("TLS_KEY_PATH", "/app/certs/server.key"),

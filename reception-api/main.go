@@ -43,7 +43,7 @@ func main() {
 		log.Fatalf("Failed to create MLLP client: %v", err)
 	}
 
-	fhirClient, err := fhir.NewFHIRClient("https://"+cfg.HISAddress, cfg.TLSCertPath)
+	fhirClient, err := fhir.NewFHIRClient("https://"+cfg.HISHTTPAddress, cfg.TLSCertPath)
 	if err != nil {
 		log.Fatalf("Failed to create FHIR client: %v", err)
 	}

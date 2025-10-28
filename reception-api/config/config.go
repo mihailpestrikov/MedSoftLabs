@@ -16,6 +16,7 @@ type Config struct {
 	JWTAccessExpiry  string
 	JWTRefreshExpiry string
 	HISAddress       string
+	HISHTTPAddress   string
 	TLSCertPath      string
 	TLSKeyPath       string
 }
@@ -33,6 +34,7 @@ func Load() *Config {
 		JWTAccessExpiry:  getEnv("JWT_ACCESS_TOKEN_DURATION", "15m"),
 		JWTRefreshExpiry: getEnv("JWT_REFRESH_TOKEN_DURATION", "168h"),
 		HISAddress:       getEnv("HIS_MLLP_ADDRESS", "localhost:2575"),
+		HISHTTPAddress:   getEnv("HIS_HTTP_ADDRESS", "localhost:9090"),
 		TLSCertPath:      getEnv("TLS_CERT_PATH", "../certs/server.crt"),
 		TLSKeyPath:       getEnv("TLS_KEY_PATH", "../certs/server.key"),
 	}

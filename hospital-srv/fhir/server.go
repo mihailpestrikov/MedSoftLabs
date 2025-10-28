@@ -32,20 +32,24 @@ func (s *FHIRServer) GetPractitioners(c *gin.Context) {
 		return
 	}
 
-	var fhirPractitioners []map[string]interface{}
+	var entries []map[string]interface{}
 	for _, p := range practitioners {
 		fhirResource := PractitionerToFHIR(p)
 		jsonBytes, _ := protojson.Marshal(fhirResource)
 
 		var resourceMap map[string]interface{}
 		_ = json.Unmarshal(jsonBytes, &resourceMap)
-		fhirPractitioners = append(fhirPractitioners, resourceMap)
+
+		entry := map[string]interface{}{
+			"resource": resourceMap,
+		}
+		entries = append(entries, entry)
 	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"resourceType": "Bundle",
 		"type":         "searchset",
-		"entry":        fhirPractitioners,
+		"entry":        entries,
 	})
 }
 
@@ -118,20 +122,24 @@ func (s *FHIRServer) GetEncounters(c *gin.Context) {
 		return
 	}
 
-	var fhirEncounters []map[string]interface{}
+	var entries []map[string]interface{}
 	for _, e := range encounters {
 		fhirResource := EncounterToFHIR(e)
 		jsonBytes, _ := protojson.Marshal(fhirResource)
 
 		var resourceMap map[string]interface{}
 		_ = json.Unmarshal(jsonBytes, &resourceMap)
-		fhirEncounters = append(fhirEncounters, resourceMap)
+
+		entry := map[string]interface{}{
+			"resource": resourceMap,
+		}
+		entries = append(entries, entry)
 	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"resourceType": "Bundle",
 		"type":         "searchset",
-		"entry":        fhirEncounters,
+		"entry":        entries,
 	})
 }
 

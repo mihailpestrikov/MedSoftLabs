@@ -37,6 +37,7 @@ services:
       TLS_CERT_PATH: /app/certs/server.crt
       TLS_KEY_PATH: /app/certs/server.key
       HIS_MLLP_ADDRESS: hospital-srv:2575
+      HIS_HTTP_ADDRESS: hospital-srv:9090
     volumes:
       - ./certs:/app/certs:ro
     depends_on:
@@ -70,7 +71,7 @@ services:
       dockerfile: Dockerfile
     container_name: hospital-srv
     ports:
-      - "8081:8081"
+      - "9090:9090"
       - "2575:2575"
     environment:
       DB_HOST: hospital-db
@@ -78,7 +79,7 @@ services:
       DB_USER: postgres
       DB_PASSWORD: postgres
       DB_NAME: hospital_db
-      SERVER_PORT: 8081
+      SERVER_PORT: 9090
       MLLP_PORT: 2575
       TLS_CERT_PATH: /app/certs/server.crt
       TLS_KEY_PATH: /app/certs/server.key

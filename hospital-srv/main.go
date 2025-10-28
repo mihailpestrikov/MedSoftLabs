@@ -57,8 +57,8 @@ func main() {
 	go mllpListener.Start()
 
 	go func() {
-		log.Printf("HTTP server starting on port %s", cfg.ServerPort)
-		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+		log.Printf("HTTPS server starting on port %s", cfg.ServerPort)
+		if err := srv.ListenAndServeTLS(cfg.TLSCertPath, cfg.TLSKeyPath); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			log.Fatalf("Server failed: %v", err)
 		}
 	}()
