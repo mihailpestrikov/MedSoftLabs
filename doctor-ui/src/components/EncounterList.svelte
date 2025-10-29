@@ -391,7 +391,7 @@
   .practitioner-selector select:focus {
     outline: none;
     border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.1);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
   }
 
   .empty-state {
@@ -514,7 +514,7 @@
 
   .action-button:hover:not(:disabled) {
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(20, 184, 166, 0.25);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
   }
 
   .action-button:disabled {
