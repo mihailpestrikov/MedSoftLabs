@@ -49,6 +49,7 @@ func Setup(patientHandler *handlers.PatientHandler, hub *websocket.Hub, fhirServ
 		fhirRoutes.POST("/Encounter", fhirServer.CreateEncounter)
 		fhirRoutes.GET("/Encounter", fhirServer.GetEncounters)
 		fhirRoutes.GET("/Encounter/:id", fhirServer.GetEncounter)
+		fhirRoutes.PATCH("/Encounter/:id", fhirServer.UpdateEncounterStatus)
 	}
 
 	return router

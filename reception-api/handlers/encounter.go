@@ -29,7 +29,36 @@ func (h *EncounterHandler) CreateEncounter(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, gin.H{
-		"message":      "encounter created successfully",
-		"encounter_id": encounterID,
+		"id": encounterID,
 	})
+}
+
+func (h *EncounterHandler) UpdateEncounterStatus(c *gin.Context) {
+	encounterID := c.Param("id")
+
+	var req struct {
+		Status string `json:"status" binding:"required"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := h.encounterService.UpdateEncounterStatus(encounterID, req.Status); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Status updated successfully"})
+}
+
+func (h *EncounterHandler) GetAllEncounters(c *gin.Context) {
+	encounters, err := h.encounterService.GetAllEncounters()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, encounters)
 }

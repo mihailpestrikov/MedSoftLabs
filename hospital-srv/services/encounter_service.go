@@ -41,3 +41,7 @@ func (s *EncounterService) GetAllEncounters() ([]models.EncounterWithDetails, er
 func (s *EncounterService) GetEncounterByID(id string) (*models.EncounterWithDetails, error) {
 	return s.repo.GetEncounterByID(id)
 }
+
+func (s *EncounterService) UpdateEncounterStatus(id string, status string) error {
+	return s.repo.UpdateEncounterStatus(id, status)
+}

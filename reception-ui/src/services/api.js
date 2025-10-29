@@ -121,3 +121,29 @@ export async function deletePatient(id) {
     method: 'DELETE',
   });
 }
+
+export async function getPractitioners() {
+  return request('/practitioners');
+}
+
+export async function createEncounter(patientId, practitionerId, startTime) {
+  return request('/encounters', {
+    method: 'POST',
+    body: JSON.stringify({
+      patient_id: patientId,
+      practitioner_id: practitionerId,
+      start_time: startTime,
+    }),
+  });
+}
+
+export async function getEncounters() {
+  return request('/encounters');
+}
+
+export async function updateEncounterStatus(encounterId, status) {
+  return request(`/encounters/${encounterId}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status }),
+  });
+}

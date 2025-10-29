@@ -69,22 +69,47 @@ func FHIRToPractitioner(fhirPrac *practpb.Practitioner) (models.Practitioner, er
 func EncounterToFHIR(e models.EncounterWithDetails) *encpb.Encounter {
 	startTime := timestamppb.New(e.StartTime)
 
+	patientDisplay := fmt.Sprintf("%s %s", e.Patient.LastName, e.Patient.FirstName)
+	if e.Patient.MiddleName != nil && *e.Patient.MiddleName != "" {
+		patientDisplay = fmt.Sprintf("%s %s %s", e.Patient.LastName, e.Patient.FirstName, *e.Patient.MiddleName)
+	}
+
+	practitionerDisplay := fmt.Sprintf("%s %s", e.Practitioner.LastName, e.Practitioner.FirstName)
+	if e.Practitioner.MiddleName != nil && *e.Practitioner.MiddleName != "" {
+		practitionerDisplay = fmt.Sprintf("%s %s %s", e.Practitioner.LastName, e.Practitioner.FirstName, *e.Practitioner.MiddleName)
+	}
+	practitionerDisplay = fmt.Sprintf("%s - %s", practitionerDisplay, e.Practitioner.Specialization)
+
+	statusCode := codespb.EncounterStatusCode_ARRIVED
+	switch e.Status {
+	case "arrived":
+		statusCode = codespb.EncounterStatusCode_ARRIVED
+	case "in-progress":
+		statusCode = codespb.EncounterStatusCode_IN_PROGRESS
+	case "completed":
+		statusCode = codespb.EncounterStatusCode_FINISHED
+	case "cancelled":
+		statusCode = codespb.EncounterStatusCode_CANCELLED
+	}
+
 	resource := &encpb.Encounter{
 		Id: &dtpb.Id{Value: e.ID},
 		Status: &encpb.Encounter_StatusCode{
-			Value: codespb.EncounterStatusCode_ARRIVED,
+			Value: statusCode,
 		},
 		Subject: &dtpb.Reference{
 			Reference: &dtpb.Reference_Uri{
-				Uri: &dtpb.String{Value: fmt.Sprintf("Patient/%s", e.PatientID)},
+				Uri: &dtpb.String{Value: fmt.Sprintf("Patient/%s", e.Patient.ID)},
 			},
+			Display: &dtpb.String{Value: patientDisplay},
 		},
 		Participant: []*encpb.Encounter_Participant{
 			{
 				Individual: &dtpb.Reference{
 					Reference: &dtpb.Reference_Uri{
-						Uri: &dtpb.String{Value: fmt.Sprintf("Practitioner/%s", e.PractitionerID)},
+						Uri: &dtpb.String{Value: fmt.Sprintf("Practitioner/%s", e.Practitioner.ID)},
 					},
+					Display: &dtpb.String{Value: practitionerDisplay},
 				},
 			},
 		},

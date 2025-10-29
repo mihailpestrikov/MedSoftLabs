@@ -205,3 +205,23 @@ func (s *FHIRServer) GetEncounter(c *gin.Context) {
 
 	c.JSON(http.StatusOK, resourceMap)
 }
+
+func (s *FHIRServer) UpdateEncounterStatus(c *gin.Context) {
+	id := c.Param("id")
+
+	var req struct {
+		Status string `json:"status" binding:"required"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
+		return
+	}
+
+	if err := s.encounterService.UpdateEncounterStatus(id, req.Status); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Status updated successfully"})
+}

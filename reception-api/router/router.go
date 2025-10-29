@@ -51,7 +51,9 @@ func Setup(authHandler *handlers.AuthHandler, patientHandler *handlers.PatientHa
 		encounters := api.Group("/encounters")
 		encounters.Use(middleware.AuthMiddleware(jwtService))
 		{
+			encounters.GET("", encounterHandler.GetAllEncounters)
 			encounters.POST("", encounterHandler.CreateEncounter)
+			encounters.PATCH("/:id", encounterHandler.UpdateEncounterStatus)
 		}
 
 		practitioners := api.Group("/practitioners")

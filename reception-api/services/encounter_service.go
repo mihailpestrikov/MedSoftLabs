@@ -42,3 +42,11 @@ func (s *EncounterService) CreateEncounter(req CreateEncounterRequest) (string, 
 
 	return encounterID, nil
 }
+
+func (s *EncounterService) UpdateEncounterStatus(encounterID string, status string) error {
+	return s.fhirClient.UpdateEncounterStatus(encounterID, status)
+}
+
+func (s *EncounterService) GetAllEncounters() ([]map[string]interface{}, error) {
+	return s.fhirClient.GetEncounters()
+}

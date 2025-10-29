@@ -79,3 +79,13 @@ func (r *Repository) GetEncounterByID(id string) (*models.EncounterWithDetails, 
 
 	return &e, nil
 }
+
+func (r *Repository) UpdateEncounterStatus(id string, status string) error {
+	query := r.sq.Update("encounters").
+		Set("status", status).
+		Where(sq.Eq{"id": id})
+
+	sqlRaw, args, _ := query.ToSql()
+	_, err := r.db.Exec(sqlRaw, args...)
+	return err
+}

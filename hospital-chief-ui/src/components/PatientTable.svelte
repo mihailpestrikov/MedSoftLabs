@@ -10,8 +10,8 @@
     await loadPatients();
 
     const wsUrl = import.meta.env.DEV
-      ? 'ws://localhost:8081/ws'
-      : `ws://${window.location.host}/ws`;
+      ? 'wss://localhost:9090/ws'
+      : `wss://${window.location.host}/ws`;
 
     ws = new WebSocketService(wsUrl);
 

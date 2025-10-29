@@ -9,7 +9,7 @@
 <div class="app">
   <header>
     <div class="container header-content">
-      <h1>Hospital Information System</h1>
+      <h1>Hospital Chief Dashboard</h1>
     </div>
   </header>
 

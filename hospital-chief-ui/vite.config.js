@@ -22,6 +22,15 @@ export default defineConfig({
           rejectUnauthorized: false
         })
       },
+      '/ws': {
+        target: 'wss://localhost:9090',
+        ws: true,
+        changeOrigin: true,
+        secure: false,
+        agent: new https.Agent({
+          rejectUnauthorized: false
+        })
+      },
     },
   },
 })
