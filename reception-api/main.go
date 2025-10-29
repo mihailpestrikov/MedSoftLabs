@@ -57,8 +57,9 @@ func main() {
 	patientHandler := handlers.NewPatientHandler(patientService)
 	encounterHandler := handlers.NewEncounterHandler(encounterService)
 	practitionerHandler := handlers.NewPractitionerHandler(practitionerService)
+	fhirNotificationHandler := handlers.NewFHIRNotificationHandler(hub)
 
-	r := router.Setup(authHandler, patientHandler, encounterHandler, practitionerHandler, jwtService, hub)
+	r := router.Setup(authHandler, patientHandler, encounterHandler, practitionerHandler, fhirNotificationHandler, jwtService, hub)
 
 	srv := &http.Server{
 		Addr:    ":" + cfg.ServerPort,

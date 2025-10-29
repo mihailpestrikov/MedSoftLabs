@@ -5,14 +5,6 @@ import (
 	"log"
 )
 
-const (
-	MessageTypePatientCreated         = "patient_created"
-	MessageTypePatientDeleted         = "patient_deleted"
-	MessageTypePatientHISIDUpdate     = "patient_his_id_update"
-	MessageTypeEncounterCreated       = "encounter_created"
-	MessageTypeEncounterStatusUpdated = "encounter_status_updated"
-)
-
 type Message struct {
 	Type string      `json:"type"`
 	Data interface{} `json:"data"`
@@ -69,40 +61,6 @@ func (h *Hub) Run() {
 	}
 }
 
-func (h *Hub) BroadcastPatientCreated(patient interface{}) {
-	h.broadcast <- Message{
-		Type: MessageTypePatientCreated,
-		Data: patient,
-	}
-}
-
-func (h *Hub) BroadcastPatientDeleted(id int) {
-	h.broadcast <- Message{
-		Type: MessageTypePatientDeleted,
-		Data: map[string]int{"id": id},
-	}
-}
-
-func (h *Hub) BroadcastPatientHISIDUpdate(patientID int, hisID string) {
-	h.broadcast <- Message{
-		Type: MessageTypePatientHISIDUpdate,
-		Data: map[string]interface{}{
-			"id":             patientID,
-			"his_patient_id": hisID,
-		},
-	}
-}
-
-func (h *Hub) BroadcastEncounterCreated(encounterData interface{}) {
-	h.broadcast <- Message{
-		Type: MessageTypeEncounterCreated,
-		Data: encounterData,
-	}
-}
-
-func (h *Hub) BroadcastEncounterStatusUpdated(encounterData interface{}) {
-	h.broadcast <- Message{
-		Type: MessageTypeEncounterStatusUpdated,
-		Data: encounterData,
-	}
+func (h *Hub) Broadcast(message Message) {
+	h.broadcast <- message
 }

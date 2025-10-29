@@ -97,7 +97,7 @@ func (c *FHIRClient) CreateEncounter(patientID string, practitionerID string, st
 
 	encounter := &encpb.Encounter{
 		Status: &encpb.Encounter_StatusCode{
-			Value: codespb.EncounterStatusCode_ARRIVED,
+			Value: codespb.EncounterStatusCode_PLANNED,
 		},
 		Subject: &dtpb.Reference{
 			Reference: &dtpb.Reference_Uri{

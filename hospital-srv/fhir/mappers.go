@@ -82,6 +82,8 @@ func EncounterToFHIR(e models.EncounterWithDetails) *encpb.Encounter {
 
 	statusCode := codespb.EncounterStatusCode_ARRIVED
 	switch e.Status {
+	case "planned":
+		statusCode = codespb.EncounterStatusCode_PLANNED
 	case "arrived":
 		statusCode = codespb.EncounterStatusCode_ARRIVED
 	case "in-progress":
@@ -131,6 +133,21 @@ func FHIRToEncounter(fhirEnc *encpb.Encounter) (models.Encounter, error) {
 
 	if fhirEnc.Id != nil {
 		encounter.ID = fhirEnc.Id.Value
+	}
+
+	if fhirEnc.Status != nil {
+		switch fhirEnc.Status.Value {
+		case codespb.EncounterStatusCode_PLANNED:
+			encounter.Status = "planned"
+		case codespb.EncounterStatusCode_ARRIVED:
+			encounter.Status = "arrived"
+		case codespb.EncounterStatusCode_IN_PROGRESS:
+			encounter.Status = "in-progress"
+		case codespb.EncounterStatusCode_FINISHED:
+			encounter.Status = "completed"
+		case codespb.EncounterStatusCode_CANCELLED:
+			encounter.Status = "cancelled"
+		}
 	}
 
 	if fhirEnc.Subject != nil && fhirEnc.Subject.GetUri() != nil {

@@ -37,8 +37,10 @@ func main() {
 	practitionerService := services.NewPractitionerService(repo)
 	encounterService := services.NewEncounterService(repo, hub)
 
+	notificationClient := fhir.NewNotificationClient(cfg.DoctorAPIURL, cfg.ReceptionAPIURL)
+
 	patientHandler := handlers.New(patientService)
-	fhirServer := fhir.NewFHIRServer(practitionerService, encounterService)
+	fhirServer := fhir.NewFHIRServer(practitionerService, encounterService, notificationClient)
 
 	r := router.Setup(patientHandler, hub, fhirServer)
 

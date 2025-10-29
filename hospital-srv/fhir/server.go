@@ -17,12 +17,14 @@ import (
 type FHIRServer struct {
 	practitionerService *services.PractitionerService
 	encounterService    *services.EncounterService
+	notificationClient  *NotificationClient
 }
 
-func NewFHIRServer(practitionerService *services.PractitionerService, encounterService *services.EncounterService) *FHIRServer {
+func NewFHIRServer(practitionerService *services.PractitionerService, encounterService *services.EncounterService, notificationClient *NotificationClient) *FHIRServer {
 	return &FHIRServer{
 		practitionerService: practitionerService,
 		encounterService:    encounterService,
+		notificationClient:  notificationClient,
 	}
 }
 
@@ -157,6 +159,12 @@ func (s *FHIRServer) CreateEncounter(c *gin.Context) {
 	var resourceMap map[string]interface{}
 	_ = json.Unmarshal(jsonBytes, &resourceMap)
 
+	go func() {
+		if err := s.notificationClient.NotifyEncounterCreated(resourceMap); err != nil {
+		} else {
+		}
+	}()
+
 	c.JSON(http.StatusCreated, resourceMap)
 }
 
@@ -221,6 +229,21 @@ func (s *FHIRServer) UpdateEncounterStatus(c *gin.Context) {
 	if err := s.encounterService.UpdateEncounterStatus(id, req.Status); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
+	}
+
+	updatedEncounter, err := s.encounterService.GetEncounterByID(id)
+	if err == nil {
+		fhirResource := EncounterToFHIR(*updatedEncounter)
+		jsonBytes, _ := protojson.Marshal(fhirResource)
+
+		var resourceMap map[string]interface{}
+		_ = json.Unmarshal(jsonBytes, &resourceMap)
+
+		go func() {
+			if err := s.notificationClient.NotifyEncounterStatusUpdated(resourceMap); err != nil {
+				log.Printf("Failed to send encounter_status_updated notification: %v", err)
+			}
+		}()
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Status updated successfully"})

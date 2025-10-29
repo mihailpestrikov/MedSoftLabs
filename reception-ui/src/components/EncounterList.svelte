@@ -9,6 +9,7 @@
   let updatingStatus = {};
 
   const statuses = [
+    { value: 'planned', label: 'Planned', color: 'gray' },
     { value: 'arrived', label: 'Arrived', color: 'green' },
     { value: 'in-progress', label: 'In Progress', color: 'blue' },
     { value: 'completed', label: 'Completed', color: 'purple' },
@@ -31,6 +32,22 @@
 
     ws.on('encounter_created', (encounter) => {
       encounters.update(e => [encounter, ...e]);
+    });
+
+    ws.on('encounter_status_updated', (encounterData) => {
+      const encounterId = getValue(encounterData.id);
+
+      let statusValue = getValue(encounterData.status);
+      if (statusValue) {
+        statusValue = statusValue.toLowerCase().replace(/_/g, '-');
+        if (statusValue === 'finished') {
+          statusValue = 'completed';
+        }
+      }
+
+      encounters.update(e => e.map(enc =>
+        getValue(enc.id) === encounterId ? { ...enc, status: { value: statusValue } } : enc
+      ));
     });
 
     ws.connect();
@@ -61,13 +78,12 @@
   function formatDateTime(field) {
     const dateString = getValue(field);
     const date = new Date(dateString);
-    return date.toLocaleString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false
-    });
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${day}.${month}.${year}, ${hours}:${minutes}`;
   }
 
   function formatDateOnly(dateString) {
@@ -373,6 +389,12 @@
   .status-select:disabled {
     cursor: not-allowed;
     opacity: 0.6;
+  }
+
+  .status-select.status-gray {
+    background: rgba(107, 114, 128, 0.1);
+    color: #4b5563;
+    border-color: rgba(107, 114, 128, 0.3);
   }
 
   .status-select.status-green {

@@ -8,7 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func Setup(authHandler *handlers.AuthHandler, patientHandler *handlers.PatientHandler, encounterHandler *handlers.EncounterHandler, practitionerHandler *handlers.PractitionerHandler, jwtService *middleware.JWTService, hub *websocket.Hub) *gin.Engine {
+func Setup(authHandler *handlers.AuthHandler, patientHandler *handlers.PatientHandler, encounterHandler *handlers.EncounterHandler, practitionerHandler *handlers.PractitionerHandler, fhirNotificationHandler *handlers.FHIRNotificationHandler, jwtService *middleware.JWTService, hub *websocket.Hub) *gin.Engine {
 	router := gin.Default()
 
 	router.Use(func(c *gin.Context) {
@@ -28,6 +28,11 @@ func Setup(authHandler *handlers.AuthHandler, patientHandler *handlers.PatientHa
 	router.GET("/ws", func(c *gin.Context) {
 		websocket.ServeWs(hub, c.Writer, c.Request)
 	})
+
+	fhir := router.Group("/fhir")
+	{
+		fhir.POST("/notifications/encounter", fhirNotificationHandler.HandleEncounterNotification)
+	}
 
 	api := router.Group("/api")
 	{

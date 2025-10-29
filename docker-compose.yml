@@ -83,11 +83,32 @@ services:
       MLLP_PORT: 2575
       TLS_CERT_PATH: /app/certs/server.crt
       TLS_KEY_PATH: /app/certs/server.key
+      DOCTOR_API_URL: https://doctor-api:8081
+      RECEPTION_API_URL: https://reception-api:8080
     volumes:
       - ./certs:/app/certs:ro
     depends_on:
       hospital-db:
         condition: service_healthy
+    networks:
+      - app-network
+
+  doctor-api:
+    build:
+      context: ./doctor-api
+      dockerfile: Dockerfile
+    container_name: doctor-api
+    ports:
+      - "8081:8081"
+    environment:
+      DOCTOR_API_PORT: 8081
+      HIS_HTTP_ADDRESS: https://hospital-srv:9090
+      TLS_CERT_PATH: /app/certs/server.crt
+      TLS_KEY_PATH: /app/certs/server.key
+    volumes:
+      - ./certs:/app/certs:ro
+    depends_on:
+      - hospital-srv
     networks:
       - app-network
 
