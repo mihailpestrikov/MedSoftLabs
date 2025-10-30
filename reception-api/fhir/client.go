@@ -147,8 +147,6 @@ func (c *FHIRClient) CreateEncounter(patientID string, practitionerID string, st
 		return "", fmt.Errorf("failed to read response: %w", err)
 	}
 
-	log.Printf("Received FHIR response from HIS: %s", strings.ReplaceAll(string(respBody), "\n", " "))
-
 	if resp.StatusCode != http.StatusCreated {
 		return "", fmt.Errorf("HIS returned status %d: %s", resp.StatusCode, string(respBody))
 	}
@@ -158,15 +156,12 @@ func (c *FHIRClient) CreateEncounter(patientID string, practitionerID string, st
 		return "", fmt.Errorf("failed to parse response: %w", err)
 	}
 
-	idField, ok := result["id"].(map[string]interface{})
+	encounterID, ok := result["id"].(string)
 	if !ok {
 		return "", fmt.Errorf("no id in response")
 	}
 
-	encounterID, ok := idField["value"].(string)
-	if !ok {
-		return "", fmt.Errorf("invalid id format in response")
-	}
+	log.Printf("Created encounter with ID: %s", encounterID)
 
 	return encounterID, nil
 }

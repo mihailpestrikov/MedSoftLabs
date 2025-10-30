@@ -21,6 +21,74 @@
     return field?.value || '';
   }
 
+  function parseFHIREncounter(resource) {
+    // Parse status
+    let statusValue = getValue(resource.status) || 'planned';
+    statusValue = statusValue.toLowerCase().replace(/_/g, '-');
+    if (statusValue === 'finished') {
+      statusValue = 'completed';
+    }
+
+    // Parse ID
+    const id = getValue(resource.id);
+
+    // Parse start_time
+    let start_time = new Date().toISOString();
+    if (resource.period?.start) {
+      const valueUs = getValue(resource.period.start.valueUs);
+      if (valueUs) {
+        const microseconds = parseInt(valueUs);
+        const milliseconds = microseconds / 1000;
+        start_time = new Date(milliseconds).toISOString();
+      }
+    }
+
+    // Parse patient
+    let patient = {};
+    if (resource.subject) {
+      const patientDisplay = getValue(resource.subject.display) || '';
+      const parts = patientDisplay.split(/\s+/);
+      if (parts.length >= 2) {
+        patient.last_name = parts[0];
+        patient.first_name = parts[1];
+        if (parts.length >= 3) {
+          patient.middle_name = parts[2];
+        }
+      }
+    }
+
+    // Parse practitioner
+    let practitioner = {};
+    if (resource.participant && resource.participant.length > 0) {
+      const individual = resource.participant[0].individual;
+      if (individual) {
+        const practDisplay = getValue(individual.display) || '';
+        const idx = practDisplay.indexOf(' - ');
+        if (idx !== -1) {
+          const namePart = practDisplay.substring(0, idx);
+          const specialization = practDisplay.substring(idx + 3);
+          const parts = namePart.split(/\s+/);
+          if (parts.length >= 2) {
+            practitioner.LastName = parts[0];
+            practitioner.FirstName = parts[1];
+            if (parts.length >= 3) {
+              practitioner.MiddleName = parts[2];
+            }
+            practitioner.Specialization = specialization;
+          }
+        }
+      }
+    }
+
+    return {
+      id: { value: id },
+      status: { value: statusValue },
+      start_time: { value: start_time },
+      patient,
+      practitioner
+    };
+  }
+
   onMount(async () => {
     await loadEncounters();
 
@@ -30,7 +98,10 @@
 
     ws = new WebSocketService(wsUrl);
 
-    ws.on('encounter_created', (encounter) => {
+    ws.on('encounter_created', (encounterData) => {
+      console.log('Reception.UI received encounter_created:', encounterData);
+
+      const encounter = parseFHIREncounter(encounterData);
       encounters.update(e => [encounter, ...e]);
     });
 

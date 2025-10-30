@@ -154,10 +154,17 @@ func (s *FHIRServer) CreateEncounter(c *gin.Context) {
 	fhirResource := EncounterToFHIR(*createdEncounter)
 	jsonBytes, _ := protojson.Marshal(fhirResource)
 
-	log.Printf("Sending FHIR Encounter response: %s", strings.ReplaceAll(string(jsonBytes), "\n", " "))
-
 	var resourceMap map[string]interface{}
 	_ = json.Unmarshal(jsonBytes, &resourceMap)
+
+	var encounterID string
+	if idMap, ok := resourceMap["id"].(map[string]interface{}); ok {
+		if val, ok := idMap["value"].(string); ok {
+			encounterID = val
+		}
+	}
+
+	log.Printf("Created FHIR Encounter with ID: %s", encounterID)
 
 	go func() {
 		if err := s.notificationClient.NotifyEncounterCreated(resourceMap); err != nil {
@@ -165,7 +172,9 @@ func (s *FHIRServer) CreateEncounter(c *gin.Context) {
 		}
 	}()
 
-	c.JSON(http.StatusCreated, resourceMap)
+	c.JSON(http.StatusCreated, gin.H{
+		"id": encounterID,
+	})
 }
 
 func (s *FHIRServer) GetEncounters(c *gin.Context) {

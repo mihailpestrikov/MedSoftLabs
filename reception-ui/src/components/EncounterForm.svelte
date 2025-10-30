@@ -3,7 +3,6 @@
   import { createEncounter, getPractitioners } from '../services/api.js';
   import { patients } from '../stores/patients.js';
   import { practitioners, loadingPractitioners, practitionerError } from '../stores/practitioners.js';
-  import { encounters } from '../stores/encounters.js';
 
   let selectedPatientId = '';
   let selectedPractitionerId = '';
@@ -80,21 +79,9 @@
 
     try {
       const isoTime = new Date(startTime).toISOString();
-      const result = await createEncounter(selectedPatientId, selectedPractitionerId, isoTime);
+      await createEncounter(selectedPatientId, selectedPractitionerId, isoTime);
 
-      const patient = $patients.find(p => p.id === selectedPatientId);
-      const practitioner = $practitioners.find(p => p.ID === selectedPractitionerId);
-
-      if (patient && practitioner) {
-        encounters.update(e => [{
-          id: result.id,
-          patient_id: selectedPatientId,
-          practitioner_id: selectedPractitionerId,
-          start_time: isoTime,
-          patient: patient,
-          practitioner: practitioner
-        }, ...e]);
-      }
+      // Encounter will be added via WebSocket notification, no need to manually update store
 
       selectedPatientId = '';
       selectedPractitionerId = '';
