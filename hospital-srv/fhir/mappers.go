@@ -73,6 +73,9 @@ func EncounterToFHIR(e models.EncounterWithDetails) *encpb.Encounter {
 	if e.Patient.MiddleName != nil && *e.Patient.MiddleName != "" {
 		patientDisplay = fmt.Sprintf("%s %s %s", e.Patient.LastName, e.Patient.FirstName, *e.Patient.MiddleName)
 	}
+	if e.Patient.Gender != "" {
+		patientDisplay = fmt.Sprintf("%s [%s]", patientDisplay, e.Patient.Gender)
+	}
 
 	practitionerDisplay := fmt.Sprintf("%s %s", e.Practitioner.LastName, e.Practitioner.FirstName)
 	if e.Practitioner.MiddleName != nil && *e.Practitioner.MiddleName != "" {

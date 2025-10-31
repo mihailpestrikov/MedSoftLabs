@@ -47,12 +47,18 @@
     let patient = {};
     if (resource.subject) {
       const patientDisplay = getValue(resource.subject.display) || '';
-      const parts = patientDisplay.split(/\s+/);
+      const genderMatch = patientDisplay.match(/\[(male|female)\]$/i);
+      const gender = genderMatch ? genderMatch[1].toLowerCase() : '';
+      const nameOnly = patientDisplay.replace(/\s*\[(male|female)\]$/i, '');
+      const parts = nameOnly.split(/\s+/);
       if (parts.length >= 2) {
         patient.last_name = parts[0];
         patient.first_name = parts[1];
         if (parts.length >= 3) {
           patient.middle_name = parts[2];
+        }
+        if (gender) {
+          patient.gender = gender;
         }
       }
     }

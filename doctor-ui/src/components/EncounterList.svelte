@@ -71,7 +71,8 @@
     try {
       const data = await getEncountersByPractitioner(practitionerId);
       const encounters_data = data || [];
-      const sorted = encounters_data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      const parsed = encounters_data.map(e => parseEncounter(e));
+      const sorted = parsed.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
       encounters.set(sorted);
     } catch (e) {
       error.set(e.message);
@@ -120,7 +121,8 @@
 
     let practitionerId = encounterData.practitionerId || '';
     let patientId = encounterData.patientId || '';
-    let patientName = encounterData.patientName || encounterData.patientDisplay || '';
+    let patientName = '';
+    let patientGender = '';
     let practitionerName = encounterData.practitionerName || encounterData.practitionerDisplay || '';
     let createdAt = encounterData.createdAt || new Date().toISOString();
 
@@ -136,10 +138,27 @@
     }
 
     if (encounterData.subject) {
-      patientName = getValue(encounterData.subject.display) || patientName;
+      let fullDisplay = getValue(encounterData.subject.display) || encounterData.patientName || encounterData.patientDisplay || '';
+      const genderMatch = fullDisplay.match(/\s*\[(male|female)\]$/i);
+      if (genderMatch) {
+        patientGender = genderMatch[1].toLowerCase();
+        patientName = fullDisplay.replace(/\s*\[(male|female)\]$/i, '');
+      } else {
+        patientName = fullDisplay;
+      }
+
       const ref = getValue(encounterData.subject.reference);
       if (ref && ref.includes('/')) {
         patientId = ref.split('/').pop();
+      }
+    } else {
+      let fallbackName = encounterData.patientName || encounterData.patientDisplay || '';
+      const genderMatch = fallbackName.match(/\s*\[(male|female)\]$/i);
+      if (genderMatch) {
+        patientGender = genderMatch[1].toLowerCase();
+        patientName = fallbackName.replace(/\s*\[(male|female)\]$/i, '');
+      } else {
+        patientName = fallbackName;
       }
     }
 
@@ -156,6 +175,7 @@
       id,
       patientId,
       patientName,
+      patientGender,
       practitionerId,
       practitionerName,
       status: normalizedStatus,
@@ -276,26 +296,11 @@
       <table>
         <thead>
           <tr>
-            <th>
-              <div class="th-content">
-                <span>Patient</span>
-              </div>
-            </th>
-            <th>
-              <div class="th-content">
-                <span>Status</span>
-              </div>
-            </th>
-            <th>
-              <div class="th-content">
-                <span>Time</span>
-              </div>
-            </th>
-            <th>
-              <div class="th-content">
-                <span>Actions</span>
-              </div>
-            </th>
+            <th>Patient</th>
+            <th>Gender</th>
+            <th>Time</th>
+            <th>Status</th>
+            <th>Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -308,11 +313,18 @@
                 </div>
               </td>
               <td>
+                {#if encounter.patientGender}
+                  <span class="gender-badge gender-{encounter.patientGender.toLowerCase()}">
+                    {encounter.patientGender}
+                  </span>
+                {/if}
+              </td>
+              <td class="date-cell">{encounter.createdAt ? formatDate(encounter.createdAt) : 'N/A'}</td>
+              <td>
                 <span class="status-badge {getStatusColor(encounter.status || 'planned')}">
                   {encounter.status || 'planned'}
                 </span>
               </td>
-              <td class="date-cell">{encounter.createdAt ? formatDate(encounter.createdAt) : 'N/A'}</td>
               <td>
                 {#if encounter.id && getNextStatus(encounter.status)}
                   <button
@@ -421,12 +433,6 @@
     border-radius: var(--radius);
   }
 
-  .th-content {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-  }
-
   tbody tr {
     animation: fadeIn 0.3s ease-out forwards;
     opacity: 0;
@@ -526,6 +532,25 @@
     color: var(--text-light);
     font-size: 0.875rem;
     font-style: italic;
+  }
+
+  .gender-badge {
+    display: inline-block;
+    padding: 0.375rem 0.875rem;
+    border-radius: 100px;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    text-transform: capitalize;
+  }
+
+  .gender-badge.gender-male {
+    background: rgba(59, 130, 246, 0.1);
+    color: #2563eb;
+  }
+
+  .gender-badge.gender-female {
+    background: rgba(236, 72, 153, 0.1);
+    color: #db2777;
   }
 
   .error {
