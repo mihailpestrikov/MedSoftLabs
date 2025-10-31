@@ -26,45 +26,6 @@ type FHIRClient struct {
 	httpClient *http.Client
 }
 
-type Practitioner struct {
-	ID             string
-	FirstName      string
-	LastName       string
-	MiddleName     string
-	Specialization string
-}
-
-type FHIRBundle struct {
-	Entry []FHIRPractitionerEntry `json:"entry"`
-}
-
-type FHIRPractitionerEntry struct {
-	Resource FHIRPractitionerResource `json:"resource"`
-}
-
-type FHIRPractitionerResource struct {
-	ID            FHIRValue           `json:"id"`
-	Name          []FHIRName          `json:"name"`
-	Qualification []FHIRQualification `json:"qualification"`
-}
-
-type FHIRValue struct {
-	Value string `json:"value"`
-}
-
-type FHIRName struct {
-	Family FHIRValue   `json:"family"`
-	Given  []FHIRValue `json:"given"`
-}
-
-type FHIRQualification struct {
-	Code FHIRCode `json:"code"`
-}
-
-type FHIRCode struct {
-	Text FHIRValue `json:"text"`
-}
-
 func NewFHIRClient(baseURL string, certPath string) (*FHIRClient, error) {
 	cert, err := os.ReadFile(certPath)
 	if err != nil {
@@ -167,7 +128,7 @@ func (c *FHIRClient) CreateEncounter(patientID string, practitionerID string, st
 	return encounterID, nil
 }
 
-func (c *FHIRClient) GetPractitioners() ([]Practitioner, error) {
+func (c *FHIRClient) GetPractitioners() ([]models.PractitionerDTO, error) {
 	url := fmt.Sprintf("%s/fhir/Practitioner", c.baseURL)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -189,40 +150,34 @@ func (c *FHIRClient) GetPractitioners() ([]Practitioner, error) {
 		return nil, fmt.Errorf("HIS returned status %d: %s", resp.StatusCode, string(respBody))
 	}
 
-	var bundle FHIRBundle
+	var bundle map[string]interface{}
 	if err := json.Unmarshal(respBody, &bundle); err != nil {
 		return nil, fmt.Errorf("failed to parse response: %w", err)
 	}
 
-	var practitioners []Practitioner
-	for _, entry := range bundle.Entry {
-		resource := entry.Resource
-		firstName := ""
-		lastName := ""
-		middleName := ""
-		specialization := ""
+	entries, ok := bundle["entry"].([]interface{})
+	if !ok {
+		return []models.PractitionerDTO{}, nil
+	}
 
-		if len(resource.Name) > 0 {
-			lastName = resource.Name[0].Family.Value
-			if len(resource.Name[0].Given) > 0 {
-				firstName = resource.Name[0].Given[0].Value
-			}
-			if len(resource.Name[0].Given) > 1 {
-				middleName = resource.Name[0].Given[1].Value
-			}
+	var practitioners []models.PractitionerDTO
+	for _, entry := range entries {
+		entryMap, ok := entry.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		resource, ok := entryMap["resource"].(map[string]interface{})
+		if !ok {
+			continue
 		}
 
-		if len(resource.Qualification) > 0 {
-			specialization = resource.Qualification[0].Code.Text.Value
+		dto, err := MapFHIRToPractitionerDTO(resource)
+		if err != nil {
+			log.Printf("Failed to map FHIR Practitioner to DTO: %v", err)
+			continue
 		}
 
-		practitioners = append(practitioners, Practitioner{
-			ID:             resource.ID.Value,
-			FirstName:      firstName,
-			LastName:       lastName,
-			MiddleName:     middleName,
-			Specialization: specialization,
-		})
+		practitioners = append(practitioners, *dto)
 	}
 
 	return practitioners, nil

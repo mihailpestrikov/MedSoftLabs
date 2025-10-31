@@ -153,8 +153,8 @@
         >
           <option value="">Select doctor...</option>
           {#each $practitioners as practitioner}
-            <option value={practitioner.ID}>
-              {practitioner.LastName} {practitioner.FirstName} - {practitioner.Specialization}
+            <option value={practitioner.id}>
+              {practitioner.lastName} {practitioner.firstName} - {practitioner.specialization}
             </option>
           {/each}
         </select>

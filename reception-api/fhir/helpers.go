@@ -161,3 +161,46 @@ func MapFHIRToEncounterDTO(fhirData interface{}) (*models.EncounterDTO, error) {
 
 	return dto, nil
 }
+
+func MapFHIRToPractitionerDTO(fhirData interface{}) (*models.PractitionerDTO, error) {
+	data, ok := fhirData.(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("invalid FHIR data format")
+	}
+
+	dto := &models.PractitionerDTO{
+		ID: GetStringValue(data["id"]),
+	}
+
+	if names, ok := data["name"].([]interface{}); ok && len(names) > 0 {
+		if name, ok := names[0].(map[string]interface{}); ok {
+			if family, ok := name["family"].(map[string]interface{}); ok {
+				dto.LastName = GetStringValue(family)
+			}
+			if given, ok := name["given"].([]interface{}); ok {
+				if len(given) > 0 {
+					if g, ok := given[0].(map[string]interface{}); ok {
+						dto.FirstName = GetStringValue(g)
+					}
+				}
+				if len(given) > 1 {
+					if g, ok := given[1].(map[string]interface{}); ok {
+						dto.MiddleName = GetStringValue(g)
+					}
+				}
+			}
+		}
+	}
+
+	if qualifications, ok := data["qualification"].([]interface{}); ok && len(qualifications) > 0 {
+		if q, ok := qualifications[0].(map[string]interface{}); ok {
+			if code, ok := q["code"].(map[string]interface{}); ok {
+				if text, ok := code["text"].(map[string]interface{}); ok {
+					dto.Specialization = GetStringValue(text)
+				}
+			}
+		}
+	}
+
+	return dto, nil
+}
