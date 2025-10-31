@@ -16,85 +16,6 @@
     { value: 'cancelled', label: 'Cancelled', color: 'red' }
   ];
 
-  function getValue(field) {
-    if (typeof field === 'string') return field;
-    return field?.value || '';
-  }
-
-  function parseFHIREncounter(resource) {
-    // Parse status
-    let statusValue = getValue(resource.status) || 'planned';
-    statusValue = statusValue.toLowerCase().replace(/_/g, '-');
-    if (statusValue === 'finished') {
-      statusValue = 'completed';
-    }
-
-    // Parse ID
-    const id = getValue(resource.id);
-
-    // Parse start_time
-    let start_time = new Date().toISOString();
-    if (resource.period?.start) {
-      const valueUs = getValue(resource.period.start.valueUs);
-      if (valueUs) {
-        const microseconds = parseInt(valueUs);
-        const milliseconds = microseconds / 1000;
-        start_time = new Date(milliseconds).toISOString();
-      }
-    }
-
-    // Parse patient
-    let patient = {};
-    if (resource.subject) {
-      const patientDisplay = getValue(resource.subject.display) || '';
-      const genderMatch = patientDisplay.match(/\[(male|female)\]$/i);
-      const gender = genderMatch ? genderMatch[1].toLowerCase() : '';
-      const nameOnly = patientDisplay.replace(/\s*\[(male|female)\]$/i, '');
-      const parts = nameOnly.split(/\s+/);
-      if (parts.length >= 2) {
-        patient.last_name = parts[0];
-        patient.first_name = parts[1];
-        if (parts.length >= 3) {
-          patient.middle_name = parts[2];
-        }
-        if (gender) {
-          patient.gender = gender;
-        }
-      }
-    }
-
-    // Parse practitioner
-    let practitioner = {};
-    if (resource.participant && resource.participant.length > 0) {
-      const individual = resource.participant[0].individual;
-      if (individual) {
-        const practDisplay = getValue(individual.display) || '';
-        const idx = practDisplay.indexOf(' - ');
-        if (idx !== -1) {
-          const namePart = practDisplay.substring(0, idx);
-          const specialization = practDisplay.substring(idx + 3);
-          const parts = namePart.split(/\s+/);
-          if (parts.length >= 2) {
-            practitioner.LastName = parts[0];
-            practitioner.FirstName = parts[1];
-            if (parts.length >= 3) {
-              practitioner.MiddleName = parts[2];
-            }
-            practitioner.Specialization = specialization;
-          }
-        }
-      }
-    }
-
-    return {
-      id: { value: id },
-      status: { value: statusValue },
-      start_time: { value: start_time },
-      patient,
-      practitioner
-    };
-  }
-
   onMount(async () => {
     await loadEncounters();
 
@@ -106,24 +27,12 @@
 
     ws.on('encounter_created', (encounterData) => {
       console.log('Reception.UI received encounter_created:', encounterData);
-
-      const encounter = parseFHIREncounter(encounterData);
-      encounters.update(e => [encounter, ...e]);
+      encounters.update(e => [encounterData, ...e]);
     });
 
     ws.on('encounter_status_updated', (encounterData) => {
-      const encounterId = getValue(encounterData.id);
-
-      let statusValue = getValue(encounterData.status);
-      if (statusValue) {
-        statusValue = statusValue.toLowerCase().replace(/_/g, '-');
-        if (statusValue === 'finished') {
-          statusValue = 'completed';
-        }
-      }
-
       encounters.update(e => e.map(enc =>
-        getValue(enc.id) === encounterId ? { ...enc, status: { value: statusValue } } : enc
+        enc.id === encounterData.id ? encounterData : enc
       ));
     });
 
@@ -152,8 +61,7 @@
     }
   });
 
-  function formatDateTime(field) {
-    const dateString = getValue(field);
+  function formatDateTime(dateString) {
     const date = new Date(dateString);
     const day = String(date.getDate()).padStart(2, '0');
     const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -180,18 +88,17 @@
   }
 
   async function handleStatusChange(encounter, newStatus) {
-    const encounterId = getValue(encounter.id);
-    updatingStatus[encounterId] = true;
+    updatingStatus[encounter.id] = true;
     try {
-      await updateEncounterStatus(encounterId, newStatus);
+      await updateEncounterStatus(encounter.id, newStatus);
       encounters.update(e => e.map(enc =>
-        getValue(enc.id) === encounterId ? { ...enc, status: { value: newStatus } } : enc
+        enc.id === encounter.id ? { ...enc, status: newStatus } : enc
       ));
     } catch (err) {
       console.error('Failed to update status:', err);
       alert('Failed to update status: ' + err.message);
     } finally {
-      updatingStatus[encounterId] = false;
+      updatingStatus[encounter.id] = false;
     }
   }
 
@@ -206,7 +113,7 @@
   }
 
   $: todayVisits = $encounters.filter(e => {
-    const visitDate = new Date(e.start_time);
+    const visitDate = new Date(e.createdAt);
     const today = new Date();
     return visitDate.toDateString() === today.toDateString();
   });
@@ -252,47 +159,39 @@
               <td>
                 <button
                   class="uuid-badge"
-                  class:copied={copiedId === getValue(encounter.id)}
-                  on:click={() => copyUUID(getValue(encounter.id))}
+                  class:copied={copiedId === encounter.id}
+                  on:click={() => copyUUID(encounter.id)}
                   title="Click to copy full UUID"
                 >
-                  {#if copiedId === getValue(encounter.id)}
+                  {#if copiedId === encounter.id}
                     Copied
                   {:else}
-                    {getValue(encounter.id).slice(0, 8)}
+                    {encounter.id.slice(0, 8)}
                   {/if}
                 </button>
               </td>
               <td>
                 <div class="name-cell">
                   <span class="name">
-                    {encounter.patient?.last_name || 'Unknown'}
-                    {encounter.patient?.first_name || ''}
+                    {encounter.patientName || 'Unknown'}
                   </span>
-                  {#if encounter.patient?.middle_name}
-                    <span class="middle-name">{encounter.patient.middle_name}</span>
-                  {/if}
                 </div>
               </td>
               <td>
                 <div class="doctor-cell">
                   <span class="doctor-name">
-                    {encounter.practitioner?.LastName || 'Unknown'}
-                    {encounter.practitioner?.FirstName || ''}
-                    {#if encounter.practitioner?.MiddleName}
-                      {encounter.practitioner.MiddleName}
-                    {/if}
+                    {encounter.practitionerName || 'Unknown'}
                   </span>
-                  <span class="specialization">{encounter.practitioner?.Specialization || ''}</span>
+                  <span class="specialization">{encounter.practitionerSpecialization || ''}</span>
                 </div>
               </td>
-              <td class="time-cell">{formatDateTime(encounter.start_time)}</td>
+              <td class="time-cell">{formatDateTime(encounter.createdAt)}</td>
               <td>
                 <select
-                  class="status-select status-{getStatusColor(getValue(encounter.status))}"
-                  value={getValue(encounter.status)}
+                  class="status-select status-{getStatusColor(encounter.status)}"
+                  value={encounter.status}
                   on:change={(e) => handleStatusChange(encounter, e.target.value)}
-                  disabled={updatingStatus[getValue(encounter.id)]}
+                  disabled={updatingStatus[encounter.id]}
                 >
                   {#each statuses as status}
                     <option value={status.value}>{status.label}</option>

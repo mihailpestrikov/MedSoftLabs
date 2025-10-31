@@ -20,20 +20,17 @@
     ws.on('encounter_created', (encounterData) => {
       if (!$selectedPractitionerId) return;
 
-      const encounter = parseEncounter(encounterData);
-      if (encounter.practitionerId === $selectedPractitionerId) {
-        encounters.update(e => [encounter, ...e]);
+      if (encounterData.practitionerId === $selectedPractitionerId) {
+        encounters.update(e => [encounterData, ...e]);
       }
     });
 
     ws.on('encounter_status_updated', (encounterData) => {
       if (!$selectedPractitionerId) return;
 
-      const encounter = parseEncounter(encounterData);
-
-      if (encounter.practitionerId === $selectedPractitionerId) {
+      if (encounterData.practitionerId === $selectedPractitionerId) {
         encounters.update(e => {
-          const updated = e.map(enc => enc.id === encounter.id ? encounter : enc);
+          const updated = e.map(enc => enc.id === encounterData.id ? encounterData : enc);
           return updated;
         });
       }
@@ -71,8 +68,7 @@
     try {
       const data = await getEncountersByPractitioner(practitionerId);
       const encounters_data = data || [];
-      const parsed = encounters_data.map(e => parseEncounter(e));
-      const sorted = parsed.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      const sorted = encounters_data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
       encounters.set(sorted);
     } catch (e) {
       error.set(e.message);
@@ -103,84 +99,6 @@
     } finally {
       updatingStatus[encounterId] = false;
     }
-  }
-
-  function getValue(field) {
-    if (typeof field === 'string') return field;
-    return field?.value || '';
-  }
-
-  function parseEncounter(encounterData) {
-    const id = getValue(encounterData.id) || encounterData.id || '';
-    const status = getValue(encounterData.status) || encounterData.status || 'planned';
-
-    let normalizedStatus = status.toLowerCase().replace(/_/g, '-');
-    if (normalizedStatus === 'finished') {
-      normalizedStatus = 'completed';
-    }
-
-    let practitionerId = encounterData.practitionerId || '';
-    let patientId = encounterData.patientId || '';
-    let patientName = '';
-    let patientGender = '';
-    let practitionerName = encounterData.practitionerName || encounterData.practitionerDisplay || '';
-    let createdAt = encounterData.createdAt || new Date().toISOString();
-
-    if (encounterData.participant && Array.isArray(encounterData.participant)) {
-      const participant = encounterData.participant[0];
-      if (participant?.individual) {
-        practitionerName = getValue(participant.individual.display) || practitionerName;
-        const ref = getValue(participant.individual.reference);
-        if (ref && ref.includes('/')) {
-          practitionerId = ref.split('/').pop();
-        }
-      }
-    }
-
-    if (encounterData.subject) {
-      let fullDisplay = getValue(encounterData.subject.display) || encounterData.patientName || encounterData.patientDisplay || '';
-      const genderMatch = fullDisplay.match(/\s*\[(male|female)\]$/i);
-      if (genderMatch) {
-        patientGender = genderMatch[1].toLowerCase();
-        patientName = fullDisplay.replace(/\s*\[(male|female)\]$/i, '');
-      } else {
-        patientName = fullDisplay;
-      }
-
-      const ref = getValue(encounterData.subject.reference);
-      if (ref && ref.includes('/')) {
-        patientId = ref.split('/').pop();
-      }
-    } else {
-      let fallbackName = encounterData.patientName || encounterData.patientDisplay || '';
-      const genderMatch = fallbackName.match(/\s*\[(male|female)\]$/i);
-      if (genderMatch) {
-        patientGender = genderMatch[1].toLowerCase();
-        patientName = fallbackName.replace(/\s*\[(male|female)\]$/i, '');
-      } else {
-        patientName = fallbackName;
-      }
-    }
-
-    if (encounterData.period?.start) {
-      const valueUs = getValue(encounterData.period.start.valueUs);
-      if (valueUs) {
-        const microseconds = parseInt(valueUs);
-        const milliseconds = microseconds / 1000;
-        createdAt = new Date(milliseconds).toISOString();
-      }
-    }
-
-    return {
-      id,
-      patientId,
-      patientName,
-      patientGender,
-      practitionerId,
-      practitionerName,
-      status: normalizedStatus,
-      createdAt
-    };
   }
 
   function formatDate(date) {

@@ -10,6 +10,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"reception-api/models"
 	"strings"
 	"time"
 
@@ -269,7 +270,7 @@ type Encounter struct {
 	Practitioner   interface{}
 }
 
-func (c *FHIRClient) GetEncounters() ([]map[string]interface{}, error) {
+func (c *FHIRClient) GetEncounters() ([]models.EncounterDTO, error) {
 	url := fmt.Sprintf("%s/fhir/Encounter", c.baseURL)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -298,10 +299,10 @@ func (c *FHIRClient) GetEncounters() ([]map[string]interface{}, error) {
 
 	entries, ok := bundle["entry"].([]interface{})
 	if !ok {
-		return []map[string]interface{}{}, nil
+		return []models.EncounterDTO{}, nil
 	}
 
-	var encounters []map[string]interface{}
+	var encounters []models.EncounterDTO
 	for _, entry := range entries {
 		entryMap, ok := entry.(map[string]interface{})
 		if !ok {
@@ -312,66 +313,13 @@ func (c *FHIRClient) GetEncounters() ([]map[string]interface{}, error) {
 			continue
 		}
 
-		statusValue := strings.ToLower(fmt.Sprintf("%v", getValue(resource, "status")))
-		statusValue = strings.ReplaceAll(statusValue, "_", "-")
-		if statusValue == "finished" {
-			statusValue = "completed"
+		dto, err := MapFHIRToEncounterDTO(resource)
+		if err != nil {
+			log.Printf("Failed to map FHIR to DTO: %v", err)
+			continue
 		}
 
-		encounter := map[string]interface{}{
-			"id":     getValue(resource, "id"),
-			"status": statusValue,
-		}
-
-		if period, ok := resource["period"].(map[string]interface{}); ok {
-			if start, ok := period["start"].(map[string]interface{}); ok {
-				if valueUs, ok := start["valueUs"].(string); ok {
-					var microseconds int64
-					fmt.Sscanf(valueUs, "%d", &microseconds)
-					milliseconds := microseconds / 1000
-					encounter["start_time"] = time.UnixMilli(milliseconds).Format(time.RFC3339)
-				}
-			}
-		}
-
-		if subject, ok := resource["subject"].(map[string]interface{}); ok {
-			patientDisplay := getDisplayValue(subject)
-			parts := strings.Fields(patientDisplay)
-			patient := map[string]interface{}{}
-			if len(parts) >= 2 {
-				patient["last_name"] = parts[0]
-				patient["first_name"] = parts[1]
-				if len(parts) >= 3 {
-					patient["middle_name"] = parts[2]
-				}
-			}
-			encounter["patient"] = patient
-		}
-
-		if participants, ok := resource["participant"].([]interface{}); ok && len(participants) > 0 {
-			if participant, ok := participants[0].(map[string]interface{}); ok {
-				if individual, ok := participant["individual"].(map[string]interface{}); ok {
-					practDisplay := getDisplayValue(individual)
-					practitioner := map[string]interface{}{}
-					if idx := strings.Index(practDisplay, " - "); idx != -1 {
-						namePart := practDisplay[:idx]
-						specialization := practDisplay[idx+3:]
-						parts := strings.Fields(namePart)
-						if len(parts) >= 2 {
-							practitioner["LastName"] = parts[0]
-							practitioner["FirstName"] = parts[1]
-							if len(parts) >= 3 {
-								practitioner["MiddleName"] = parts[2]
-							}
-							practitioner["Specialization"] = specialization
-						}
-					}
-					encounter["practitioner"] = practitioner
-				}
-			}
-		}
-
-		encounters = append(encounters, encounter)
+		encounters = append(encounters, *dto)
 	}
 
 	return encounters, nil

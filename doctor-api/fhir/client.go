@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/tls"
 	"crypto/x509"
+	"doctor-api/models"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -47,7 +48,7 @@ func NewFHIRClient(baseURL string, certPath string) (*FHIRClient, error) {
 	}, nil
 }
 
-func (c *FHIRClient) GetEncountersByPractitioner(practitionerID string) ([]map[string]interface{}, error) {
+func (c *FHIRClient) GetEncountersByPractitioner(practitionerID string) ([]models.EncounterDTO, error) {
 	url := fmt.Sprintf("%s/fhir/Encounter", c.baseURL)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -65,8 +66,6 @@ func (c *FHIRClient) GetEncountersByPractitioner(practitionerID string) ([]map[s
 		return nil, fmt.Errorf("failed to read response: %w", err)
 	}
 
-	log.Printf("Received FHIR Encounter response from HIS: %s", strings.ReplaceAll(string(respBody), "\n", " "))
-
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("HIS returned status %d: %s", resp.StatusCode, string(respBody))
 	}
@@ -78,10 +77,10 @@ func (c *FHIRClient) GetEncountersByPractitioner(practitionerID string) ([]map[s
 
 	entries, ok := bundle["entry"].([]interface{})
 	if !ok {
-		return []map[string]interface{}{}, nil
+		return []models.EncounterDTO{}, nil
 	}
 
-	var encounters []map[string]interface{}
+	var encounters []models.EncounterDTO
 	for _, entry := range entries {
 		entryMap, ok := entry.(map[string]interface{})
 		if !ok {
@@ -96,96 +95,16 @@ func (c *FHIRClient) GetEncountersByPractitioner(practitionerID string) ([]map[s
 			continue
 		}
 
-		statusValue := strings.ToLower(fmt.Sprintf("%v", getValue(resource, "status")))
-		statusValue = strings.ReplaceAll(statusValue, "_", "-")
-		if statusValue == "finished" {
-			statusValue = "completed"
+		dto, err := MapFHIRToEncounterDTO(resource)
+		if err != nil {
+			log.Printf("Failed to map FHIR to DTO: %v", err)
+			continue
 		}
 
-		encounter := map[string]interface{}{
-			"id":     getValue(resource, "id"),
-			"status": statusValue,
-		}
-
-		if period, ok := resource["period"].(map[string]interface{}); ok {
-			if start, ok := period["start"].(map[string]interface{}); ok {
-				if valueUs, ok := start["valueUs"].(string); ok {
-					var microseconds int64
-					fmt.Sscanf(valueUs, "%d", &microseconds)
-					milliseconds := microseconds / 1000
-					timeStr := time.UnixMilli(milliseconds).Format(time.RFC3339)
-					encounter["start_time"] = timeStr
-					encounter["createdAt"] = timeStr
-				}
-			}
-		}
-
-		if subject, ok := resource["subject"].(map[string]interface{}); ok {
-			patientDisplay := getDisplayValue(subject)
-			encounter["patientName"] = patientDisplay
-
-			if ref, ok := subject["reference"].(map[string]interface{}); ok {
-				if refValue, ok := ref["value"].(string); ok {
-					if idx := strings.LastIndex(refValue, "/"); idx != -1 {
-						encounter["patientId"] = refValue[idx+1:]
-					}
-				}
-			}
-
-			parts := strings.Fields(patientDisplay)
-			patient := map[string]interface{}{}
-			if len(parts) >= 2 {
-				patient["last_name"] = parts[0]
-				patient["first_name"] = parts[1]
-				if len(parts) >= 3 {
-					patient["middle_name"] = parts[2]
-				}
-			}
-			encounter["patient"] = patient
-		}
-
-		if participants, ok := resource["participant"].([]interface{}); ok && len(participants) > 0 {
-			if participant, ok := participants[0].(map[string]interface{}); ok {
-				if individual, ok := participant["individual"].(map[string]interface{}); ok {
-					practDisplay := getDisplayValue(individual)
-					encounter["practitionerName"] = practDisplay
-
-					if ref, ok := individual["reference"].(map[string]interface{}); ok {
-						if refValue, ok := ref["value"].(string); ok {
-							if idx := strings.LastIndex(refValue, "/"); idx != -1 {
-								encounter["practitionerId"] = refValue[idx+1:]
-							}
-						}
-					}
-
-					practitioner := map[string]interface{}{}
-					if idx := strings.Index(practDisplay, " - "); idx != -1 {
-						namePart := practDisplay[:idx]
-						specialization := practDisplay[idx+3:]
-						parts := strings.Fields(namePart)
-						if len(parts) >= 2 {
-							practitioner["LastName"] = parts[0]
-							practitioner["FirstName"] = parts[1]
-							if len(parts) >= 3 {
-								practitioner["MiddleName"] = parts[2]
-							}
-							practitioner["Specialization"] = specialization
-						}
-					}
-					encounter["practitioner"] = practitioner
-				}
-			}
-		}
-
-		encounters = append(encounters, encounter)
+		encounters = append(encounters, *dto)
 	}
 
 	log.Printf("Returning %d encounters for practitioner %s", len(encounters), practitionerID)
-	if len(encounters) > 0 {
-		jsonBytes, _ := json.Marshal(encounters)
-		log.Printf("Sample encounter data: %s", string(jsonBytes))
-	}
-
 	return encounters, nil
 }
 

@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"doctor-api/fhir"
 	"doctor-api/websocket"
 	"encoding/json"
 	"io"
@@ -38,18 +39,26 @@ func (h *FHIRNotificationHandler) HandleEncounterNotification(c *gin.Context) {
 	eventType, _ := notification["type"].(string)
 	encounterData, _ := notification["data"]
 
+	// Map FHIR to DTO
+	dto, err := fhir.MapFHIRToEncounterDTO(encounterData)
+	if err != nil {
+		log.Printf("Error mapping FHIR to DTO: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to map FHIR data"})
+		return
+	}
+
 	switch eventType {
 	case "encounter_created":
 		h.hub.Broadcast(websocket.Message{
 			Type: "encounter_created",
-			Data: encounterData,
+			Data: dto,
 		})
 		log.Printf("Broadcasted encounter_created event to Doctor.UI clients")
 
 	case "encounter_status_updated":
 		h.hub.Broadcast(websocket.Message{
 			Type: "encounter_status_updated",
-			Data: encounterData,
+			Data: dto,
 		})
 		log.Printf("Broadcasted encounter_status_updated event to Doctor.UI clients")
 

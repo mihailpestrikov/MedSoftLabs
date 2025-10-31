@@ -5,6 +5,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"reception-api/fhir"
 	"reception-api/websocket"
 
 	"github.com/gin-gonic/gin"
@@ -51,11 +52,18 @@ func (h *FHIRNotificationHandler) HandleEncounterNotification(c *gin.Context) {
 
 	log.Printf("Received FHIR notification: type=%s", eventType)
 
+	dto, err := fhir.MapFHIRToEncounterDTO(encounterData)
+	if err != nil {
+		log.Printf("Error mapping FHIR to DTO: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to map FHIR data"})
+		return
+	}
+
 	switch eventType {
 	case "encounter_created":
-		h.hub.BroadcastEncounterCreated(encounterData)
+		h.hub.BroadcastEncounterCreated(dto)
 	case "encounter_status_updated":
-		h.hub.BroadcastEncounterStatusUpdated(encounterData)
+		h.hub.BroadcastEncounterStatusUpdated(dto)
 	default:
 		log.Printf("Unknown notification type: %s", eventType)
 	}

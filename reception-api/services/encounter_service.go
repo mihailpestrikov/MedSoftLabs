@@ -4,6 +4,7 @@ import (
 	"errors"
 	"reception-api/database"
 	"reception-api/fhir"
+	"reception-api/models"
 	"time"
 )
 
@@ -47,6 +48,6 @@ func (s *EncounterService) UpdateEncounterStatus(encounterID string, status stri
 	return s.fhirClient.UpdateEncounterStatus(encounterID, status)
 }
 
-func (s *EncounterService) GetAllEncounters() ([]map[string]interface{}, error) {
+func (s *EncounterService) GetAllEncounters() ([]models.EncounterDTO, error) {
 	return s.fhirClient.GetEncounters()
 }
