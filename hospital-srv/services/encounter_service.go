@@ -26,7 +26,7 @@ func (s *EncounterService) CreateEncounter(encounter models.Encounter) (string, 
 
 	createdEncounter, err := s.repo.GetEncounterByID(id)
 	if err != nil {
-		return id, nil
+		return "", err
 	}
 
 	s.hub.BroadcastEncounterCreated(createdEncounter)

@@ -26,7 +26,7 @@ func (s *PatientService) CreatePatient(patient models.Patient) (string, error) {
 
 	createdPatient, err := s.repo.GetPatientByID(id)
 	if err != nil {
-		return id, nil
+		return "", err
 	}
 
 	s.hub.BroadcastPatientCreated(createdPatient)

@@ -168,7 +168,7 @@ func (s *FHIRServer) CreateEncounter(c *gin.Context) {
 
 	go func() {
 		if err := s.notificationClient.NotifyEncounterCreated(resourceMap); err != nil {
-		} else {
+			log.Printf("Failed to send encounter_created notification: %v", err)
 		}
 	}()
 

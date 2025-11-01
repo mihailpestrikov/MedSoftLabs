@@ -21,11 +21,13 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
+// FHIRClient provides communication with FHIR server.
 type FHIRClient struct {
 	baseURL    string
 	httpClient *http.Client
 }
 
+// NewFHIRClient creates a new FHIR client with TLS configuration.
 func NewFHIRClient(baseURL string, certPath string) (*FHIRClient, error) {
 	cert, err := os.ReadFile(certPath)
 	if err != nil {
@@ -215,16 +217,6 @@ func (c *FHIRClient) UpdateEncounterStatus(encounterID string, status string) er
 	return nil
 }
 
-type Encounter struct {
-	ID             string
-	PatientID      int
-	PractitionerID string
-	Status         string
-	StartTime      string
-	Patient        interface{}
-	Practitioner   interface{}
-}
-
 func (c *FHIRClient) GetEncounters() ([]models.EncounterDTO, error) {
 	url := fmt.Sprintf("%s/fhir/Encounter", c.baseURL)
 	req, err := http.NewRequest("GET", url, nil)
@@ -278,25 +270,4 @@ func (c *FHIRClient) GetEncounters() ([]models.EncounterDTO, error) {
 	}
 
 	return encounters, nil
-}
-
-func getValue(m map[string]interface{}, key string) interface{} {
-	if v, ok := m[key]; ok {
-		if vm, ok := v.(map[string]interface{}); ok {
-			if val, ok := vm["value"]; ok {
-				return val
-			}
-		}
-		return v
-	}
-	return nil
-}
-
-func getDisplayValue(ref map[string]interface{}) string {
-	if display, ok := ref["display"].(map[string]interface{}); ok {
-		if val, ok := display["value"].(string); ok {
-			return val
-		}
-	}
-	return ""
 }

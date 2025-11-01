@@ -15,11 +15,13 @@ import (
 	"time"
 )
 
+// FHIRClient provides communication with FHIR server.
 type FHIRClient struct {
 	baseURL    string
 	httpClient *http.Client
 }
 
+// NewFHIRClient creates a new FHIR client with TLS configuration.
 func NewFHIRClient(baseURL string, certPath string) (*FHIRClient, error) {
 	cert, err := os.ReadFile(certPath)
 	if err != nil {
@@ -176,27 +178,6 @@ func matchesPractitioner(resource map[string]interface{}, practitionerID string)
 	}
 
 	return false
-}
-
-func getValue(m map[string]interface{}, key string) interface{} {
-	if v, ok := m[key]; ok {
-		if vm, ok := v.(map[string]interface{}); ok {
-			if val, ok := vm["value"]; ok {
-				return val
-			}
-		}
-		return v
-	}
-	return nil
-}
-
-func getDisplayValue(ref map[string]interface{}) string {
-	if display, ok := ref["display"].(map[string]interface{}); ok {
-		if val, ok := display["value"].(string); ok {
-			return val
-		}
-	}
-	return ""
 }
 
 func (c *FHIRClient) GetPractitioners() ([]models.PractitionerDTO, error) {

@@ -1,5 +1,6 @@
 package models
 
+// EncounterDTO represents encounter data for client applications.
 type EncounterDTO struct {
 	ID                         string `json:"id"`
 	PatientID                  string `json:"patientId"`
@@ -12,7 +13,7 @@ type EncounterDTO struct {
 	CreatedAt                  string `json:"createdAt"`
 }
 
-// PractitionerDTO - простая структура для передачи на фронтенд
+// PractitionerDTO represents practitioner data for client applications.
 type PractitionerDTO struct {
 	ID             string `json:"id"`
 	FirstName      string `json:"firstName"`

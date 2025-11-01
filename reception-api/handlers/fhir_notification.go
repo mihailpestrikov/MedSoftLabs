@@ -11,16 +11,19 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// FHIRNotificationHandler handles FHIR notifications from HIS.
 type FHIRNotificationHandler struct {
 	hub *websocket.Hub
 }
 
+// NewFHIRNotificationHandler creates a new FHIR notification handler.
 func NewFHIRNotificationHandler(hub *websocket.Hub) *FHIRNotificationHandler {
 	return &FHIRNotificationHandler{
 		hub: hub,
 	}
 }
 
+// HandleEncounterNotification processes encounter notifications and broadcasts to connected clients.
 func (h *FHIRNotificationHandler) HandleEncounterNotification(c *gin.Context) {
 	body, err := io.ReadAll(c.Request.Body)
 	if err != nil {

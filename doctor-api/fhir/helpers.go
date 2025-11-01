@@ -10,6 +10,7 @@ import (
 	"time"
 )
 
+// GetStringValue extracts string value from FHIR field which may be a string or map with "value" key.
 func GetStringValue(field interface{}) string {
 	if field == nil {
 		return ""
@@ -25,6 +26,7 @@ func GetStringValue(field interface{}) string {
 	return ""
 }
 
+// GetInt64Value extracts int64 value from FHIR field, handling multiple formats.
 func GetInt64Value(field interface{}) int64 {
 	if field == nil {
 		return 0
@@ -97,6 +99,7 @@ func NormalizeStatus(status string) string {
 	return status
 }
 
+// MapFHIRToEncounterDTO converts FHIR Encounter resource to EncounterDTO.
 func MapFHIRToEncounterDTO(fhirData interface{}) (*models.EncounterDTO, error) {
 	data, ok := fhirData.(map[string]interface{})
 	if !ok {
@@ -162,6 +165,7 @@ func MapFHIRToEncounterDTO(fhirData interface{}) (*models.EncounterDTO, error) {
 	return dto, nil
 }
 
+// MapFHIRToPractitionerDTO converts FHIR Practitioner resource to PractitionerDTO.
 func MapFHIRToPractitionerDTO(fhirData interface{}) (*models.PractitionerDTO, error) {
 	data, ok := fhirData.(map[string]interface{})
 	if !ok {

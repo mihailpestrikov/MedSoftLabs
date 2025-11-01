@@ -11,14 +11,17 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// FHIRNotificationHandler handles FHIR notifications from HIS.
 type FHIRNotificationHandler struct {
 	hub *websocket.Hub
 }
 
+// NewFHIRNotificationHandler creates a new FHIR notification handler.
 func NewFHIRNotificationHandler(hub *websocket.Hub) *FHIRNotificationHandler {
 	return &FHIRNotificationHandler{hub: hub}
 }
 
+// HandleEncounterNotification processes encounter notifications and broadcasts to connected clients.
 func (h *FHIRNotificationHandler) HandleEncounterNotification(c *gin.Context) {
 	body, err := io.ReadAll(c.Request.Body)
 	if err != nil {
@@ -36,10 +39,20 @@ func (h *FHIRNotificationHandler) HandleEncounterNotification(c *gin.Context) {
 		return
 	}
 
-	eventType, _ := notification["type"].(string)
-	encounterData, _ := notification["data"]
+	eventType, ok := notification["type"].(string)
+	if !ok {
+		log.Printf("Missing or invalid notification type")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing notification type"})
+		return
+	}
 
-	// Map FHIR to DTO
+	encounterData, ok := notification["data"]
+	if !ok {
+		log.Printf("Missing notification data")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing notification data"})
+		return
+	}
+
 	dto, err := fhir.MapFHIRToEncounterDTO(encounterData)
 	if err != nil {
 		log.Printf("Error mapping FHIR to DTO: %v", err)
