@@ -145,6 +145,25 @@ func (c *FHIRClient) UpdateEncounterStatus(encounterID string, status string) er
 	return nil
 }
 
+func getPractitionerReference(participant map[string]interface{}) string {
+	individual, ok := participant["individual"].(map[string]interface{})
+	if !ok {
+		return ""
+	}
+
+	reference, ok := individual["reference"].(map[string]interface{})
+	if !ok {
+		return ""
+	}
+
+	refValue, ok := reference["value"].(string)
+	if !ok {
+		return ""
+	}
+
+	return refValue
+}
+
 func matchesPractitioner(resource map[string]interface{}, practitionerID string) bool {
 	participants, ok := resource["participant"].([]interface{})
 	if !ok || len(participants) == 0 {
@@ -157,22 +176,8 @@ func matchesPractitioner(resource map[string]interface{}, practitionerID string)
 			continue
 		}
 
-		individual, ok := participant["individual"].(map[string]interface{})
-		if !ok {
-			continue
-		}
-
-		reference, ok := individual["reference"].(map[string]interface{})
-		if !ok {
-			continue
-		}
-
-		refValue, ok := reference["value"].(string)
-		if !ok {
-			continue
-		}
-
-		if strings.HasSuffix(refValue, practitionerID) {
+		refValue := getPractitionerReference(participant)
+		if refValue != "" && strings.HasSuffix(refValue, practitionerID) {
 			return true
 		}
 	}

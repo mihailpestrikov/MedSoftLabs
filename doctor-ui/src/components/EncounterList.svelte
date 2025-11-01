@@ -91,9 +91,14 @@
     try {
       await updateEncounterStatus(encounterId, newStatus);
 
-      encounters.update(e =>
-        e.map(enc => enc.id === encounterId ? { ...enc, status: newStatus } : enc)
-      );
+      encounters.update(encounterList => {
+        const index = encounterList.findIndex(enc => enc.id === encounterId);
+        if (index === -1) return encounterList;
+
+        const updatedList = [...encounterList];
+        updatedList[index] = { ...updatedList[index], status: newStatus };
+        return updatedList;
+      });
     } catch (e) {
       error.set(e.message);
     } finally {

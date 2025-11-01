@@ -34,8 +34,14 @@ func main() {
 
 	repo := database.New(db)
 
-	accessExpiry, _ := time.ParseDuration(cfg.JWTAccessExpiry)
-	refreshExpiry, _ := time.ParseDuration(cfg.JWTRefreshExpiry)
+	accessExpiry, err := time.ParseDuration(cfg.JWTAccessExpiry)
+	if err != nil {
+		log.Fatalf("Invalid JWT access expiry duration: %v", err)
+	}
+	refreshExpiry, err := time.ParseDuration(cfg.JWTRefreshExpiry)
+	if err != nil {
+		log.Fatalf("Invalid JWT refresh expiry duration: %v", err)
+	}
 	jwtService := middleware.New(cfg.JWTSecret, accessExpiry, refreshExpiry)
 
 	mllpClient, err := hl7.NewMLLPClient(cfg.HISAddress, cfg.TLSCertPath)

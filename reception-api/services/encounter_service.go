@@ -2,11 +2,20 @@ package services
 
 import (
 	"errors"
+	"fmt"
 	"reception-api/database"
 	"reception-api/fhir"
 	"reception-api/models"
 	"time"
 )
+
+var validEncounterStatuses = map[string]bool{
+	"planned":     true,
+	"arrived":     true,
+	"in-progress": true,
+	"completed":   true,
+	"cancelled":   true,
+}
 
 type EncounterService struct {
 	repo       *database.Repository
@@ -45,6 +54,9 @@ func (s *EncounterService) CreateEncounter(req CreateEncounterRequest) (string, 
 }
 
 func (s *EncounterService) UpdateEncounterStatus(encounterID string, status string) error {
+	if !validEncounterStatuses[status] {
+		return fmt.Errorf("invalid encounter status: %s (valid statuses: planned, arrived, in-progress, completed, cancelled)", status)
+	}
 	return s.fhirClient.UpdateEncounterStatus(encounterID, status)
 }
 

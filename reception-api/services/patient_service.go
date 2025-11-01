@@ -1,7 +1,9 @@
 package services
 
 import (
+	"database/sql"
 	"errors"
+	"fmt"
 	"log"
 	"reception-api/database"
 	"reception-api/hl7"
@@ -94,7 +96,10 @@ func (s *PatientService) GetAllPatients() ([]models.Patient, error) {
 func (s *PatientService) GetPatientByID(id int) (*models.Patient, error) {
 	patient, err := s.repo.GetPatientByID(id)
 	if err != nil {
-		return nil, errors.New("patient not found")
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, errors.New("patient not found")
+		}
+		return nil, fmt.Errorf("failed to get patient: %w", err)
 	}
 
 	return patient, nil
@@ -103,11 +108,14 @@ func (s *PatientService) GetPatientByID(id int) (*models.Patient, error) {
 func (s *PatientService) DeletePatient(id int) error {
 	patient, err := s.repo.GetPatientByID(id)
 	if err != nil {
-		return errors.New("patient not found")
+		if errors.Is(err, sql.ErrNoRows) {
+			return errors.New("patient not found")
+		}
+		return fmt.Errorf("failed to get patient: %w", err)
 	}
 
 	if err := s.repo.DeletePatient(id); err != nil {
-		return err
+		return fmt.Errorf("failed to delete patient: %w", err)
 	}
 
 	s.hub.BroadcastPatientDeleted(id)

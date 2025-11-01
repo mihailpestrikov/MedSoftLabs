@@ -1,8 +1,10 @@
 <script>
-  import { onMount } from 'svelte';
+  import { onMount, onDestroy } from 'svelte';
   import { createEncounter, getPractitioners } from '../services/api.js';
   import { patients } from '../stores/patients.js';
   import { practitioners, loadingPractitioners, practitionerError } from '../stores/practitioners.js';
+
+  const SEARCH_DEBOUNCE_MS = 300;
 
   let selectedPatientId = '';
   let selectedPractitionerId = '';
@@ -12,11 +14,37 @@
   let loading = false;
   let patientSearch = '';
   let showPatientDropdown = false;
+  let searchDebounceTimer = null;
+  let filteredPatients = [];
 
-  $: filteredPatients = $patients.filter(p => {
+  function filterPatients() {
+    if (!patientSearch) {
+      filteredPatients = [];
+      return;
+    }
+
     const searchLower = patientSearch.toLowerCase();
-    const fullName = `${p.last_name} ${p.first_name} ${p.middle_name || ''}`.toLowerCase();
-    return fullName.includes(searchLower);
+    filteredPatients = $patients.filter(p => {
+      const fullName = `${p.last_name} ${p.first_name} ${p.middle_name || ''}`.toLowerCase();
+      return fullName.includes(searchLower);
+    });
+  }
+
+  function debouncedFilterPatients() {
+    if (searchDebounceTimer) {
+      clearTimeout(searchDebounceTimer);
+    }
+    searchDebounceTimer = setTimeout(filterPatients, SEARCH_DEBOUNCE_MS);
+  }
+
+  $: if (patientSearch !== undefined) {
+    debouncedFilterPatients();
+  }
+
+  onDestroy(() => {
+    if (searchDebounceTimer) {
+      clearTimeout(searchDebounceTimer);
+    }
   });
 
   onMount(async () => {
@@ -72,6 +100,13 @@
 
     if (!startTime) {
       error = 'Please select date and time';
+      return;
+    }
+
+    const selectedTime = new Date(startTime);
+    const now = new Date();
+    if (selectedTime < now) {
+      error = 'Cannot schedule visits in the past';
       return;
     }
 

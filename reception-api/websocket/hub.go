@@ -11,6 +11,8 @@ const (
 	MessageTypePatientHISIDUpdate     = "patient_his_id_update"
 	MessageTypeEncounterCreated       = "encounter_created"
 	MessageTypeEncounterStatusUpdated = "encounter_status_updated"
+
+	BroadcastBufferSize = 256
 )
 
 type Message struct {
@@ -27,7 +29,7 @@ type Hub struct {
 
 func NewHub() *Hub {
 	return &Hub{
-		broadcast:  make(chan Message, 256),
+		broadcast:  make(chan Message, BroadcastBufferSize),
 		register:   make(chan *Client),
 		unregister: make(chan *Client),
 		clients:    make(map[*Client]bool),

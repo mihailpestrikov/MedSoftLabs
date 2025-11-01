@@ -1,8 +1,10 @@
+const WEBSOCKET_RECONNECT_DELAY_MS = 3000;
+
 export class WebSocketService {
   constructor(url) {
     this.url = url;
     this.ws = null;
-    this.reconnectInterval = 3000;
+    this.reconnectInterval = WEBSOCKET_RECONNECT_DELAY_MS;
     this.listeners = new Map();
   }
 

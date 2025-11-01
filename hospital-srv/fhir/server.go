@@ -2,6 +2,7 @@ package fhir
 
 import (
 	"encoding/json"
+	"fmt"
 	"hospital-srv/services"
 	"io"
 	"log"
@@ -12,6 +13,7 @@ import (
 	encpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/encounter_go_proto"
 	practpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/practitioner_go_proto"
 	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 )
 
 type FHIRServer struct {
@@ -28,6 +30,34 @@ func NewFHIRServer(practitionerService *services.PractitionerService, encounterS
 	}
 }
 
+func protoToMap(msg proto.Message) (map[string]interface{}, error) {
+	jsonBytes, err := protojson.Marshal(msg)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal proto to JSON: %w", err)
+	}
+
+	var result map[string]interface{}
+	if err := json.Unmarshal(jsonBytes, &result); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal JSON to map: %w", err)
+	}
+
+	return result, nil
+}
+
+func extractEncounterID(resourceMap map[string]interface{}) string {
+	idMap, ok := resourceMap["id"].(map[string]interface{})
+	if !ok {
+		return ""
+	}
+
+	val, ok := idMap["value"].(string)
+	if !ok {
+		return ""
+	}
+
+	return val
+}
+
 func (s *FHIRServer) GetPractitioners(c *gin.Context) {
 	practitioners, err := s.practitionerService.GetAllPractitioners()
 	if err != nil {
@@ -38,10 +68,11 @@ func (s *FHIRServer) GetPractitioners(c *gin.Context) {
 	var entries []map[string]interface{}
 	for _, p := range practitioners {
 		fhirResource := PractitionerToFHIR(p)
-		jsonBytes, _ := protojson.Marshal(fhirResource)
-
-		var resourceMap map[string]interface{}
-		_ = json.Unmarshal(jsonBytes, &resourceMap)
+		resourceMap, err := protoToMap(fhirResource)
+		if err != nil {
+			log.Printf("Failed to convert practitioner to map: %v", err)
+			continue
+		}
 
 		entry := map[string]interface{}{
 			"resource": resourceMap,
@@ -66,10 +97,11 @@ func (s *FHIRServer) GetPractitioner(c *gin.Context) {
 	}
 
 	fhirResource := PractitionerToFHIR(*practitioner)
-	jsonBytes, _ := protojson.Marshal(fhirResource)
-
-	var resourceMap map[string]interface{}
-	_ = json.Unmarshal(jsonBytes, &resourceMap)
+	resourceMap, err := protoToMap(fhirResource)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to convert practitioner"})
+		return
+	}
 
 	c.JSON(http.StatusOK, resourceMap)
 }
@@ -108,12 +140,14 @@ func (s *FHIRServer) CreatePractitioner(c *gin.Context) {
 	}
 
 	fhirResource := PractitionerToFHIR(*createdPractitioner)
-	jsonBytes, _ := protojson.Marshal(fhirResource)
+	resourceMap, err := protoToMap(fhirResource)
+	if err != nil {
+		c.JSON(http.StatusCreated, gin.H{"id": id})
+		return
+	}
 
+	jsonBytes, _ := json.Marshal(resourceMap)
 	log.Printf("Sending FHIR Practitioner response: %s", strings.ReplaceAll(string(jsonBytes), "\n", " "))
-
-	var resourceMap map[string]interface{}
-	_ = json.Unmarshal(jsonBytes, &resourceMap)
 
 	c.JSON(http.StatusCreated, resourceMap)
 }
@@ -152,16 +186,15 @@ func (s *FHIRServer) CreateEncounter(c *gin.Context) {
 	}
 
 	fhirResource := EncounterToFHIR(*createdEncounter)
-	jsonBytes, _ := protojson.Marshal(fhirResource)
+	resourceMap, err := protoToMap(fhirResource)
+	if err != nil {
+		c.JSON(http.StatusCreated, gin.H{"id": id})
+		return
+	}
 
-	var resourceMap map[string]interface{}
-	_ = json.Unmarshal(jsonBytes, &resourceMap)
-
-	var encounterID string
-	if idMap, ok := resourceMap["id"].(map[string]interface{}); ok {
-		if val, ok := idMap["value"].(string); ok {
-			encounterID = val
-		}
+	encounterID := extractEncounterID(resourceMap)
+	if encounterID == "" {
+		encounterID = id
 	}
 
 	log.Printf("Created FHIR Encounter with ID: %s", encounterID)
@@ -187,10 +220,11 @@ func (s *FHIRServer) GetEncounters(c *gin.Context) {
 	var entries []map[string]interface{}
 	for _, e := range encounters {
 		fhirResource := EncounterToFHIR(e)
-		jsonBytes, _ := protojson.Marshal(fhirResource)
-
-		var resourceMap map[string]interface{}
-		_ = json.Unmarshal(jsonBytes, &resourceMap)
+		resourceMap, err := protoToMap(fhirResource)
+		if err != nil {
+			log.Printf("Failed to convert encounter to map: %v", err)
+			continue
+		}
 
 		entry := map[string]interface{}{
 			"resource": resourceMap,
@@ -215,10 +249,11 @@ func (s *FHIRServer) GetEncounter(c *gin.Context) {
 	}
 
 	fhirResource := EncounterToFHIR(*encounter)
-	jsonBytes, _ := protojson.Marshal(fhirResource)
-
-	var resourceMap map[string]interface{}
-	_ = json.Unmarshal(jsonBytes, &resourceMap)
+	resourceMap, err := protoToMap(fhirResource)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to convert encounter"})
+		return
+	}
 
 	c.JSON(http.StatusOK, resourceMap)
 }

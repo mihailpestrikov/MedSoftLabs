@@ -25,8 +25,11 @@ func (r *Repository) CreateUser(username, passwordHash string) error {
 		Columns("username", "password_hash").
 		Values(username, passwordHash)
 
-	sqlRaw, args, _ := query.ToSql()
-	_, err := r.db.Exec(sqlRaw, args...)
+	sqlRaw, args, err := query.ToSql()
+	if err != nil {
+		return err
+	}
+	_, err = r.db.Exec(sqlRaw, args...)
 	return err
 }
 
@@ -35,11 +38,14 @@ func (r *Repository) GetUserByUsername(username string) (*models.User, error) {
 		From("users").
 		Where(sq.Eq{"username": username})
 
-	sqlRaw, args, _ := query.ToSql()
+	sqlRaw, args, err := query.ToSql()
+	if err != nil {
+		return nil, err
+	}
 	row := r.db.QueryRow(sqlRaw, args...)
 
 	var user models.User
-	err := row.Scan(&user.ID, &user.Username, &user.PasswordHash, &user.CreatedAt)
+	err = row.Scan(&user.ID, &user.Username, &user.PasswordHash, &user.CreatedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -53,9 +59,12 @@ func (r *Repository) CreatePatient(patient models.Patient) (int, error) {
 		Values(patient.FirstName, patient.LastName, patient.MiddleName, patient.DateOfBirth, patient.Gender).
 		Suffix("RETURNING id")
 
-	sqlRaw, args, _ := query.ToSql()
+	sqlRaw, args, err := query.ToSql()
+	if err != nil {
+		return 0, err
+	}
 	var id int
-	err := r.db.QueryRow(sqlRaw, args...).Scan(&id)
+	err = r.db.QueryRow(sqlRaw, args...).Scan(&id)
 	return id, err
 }
 
@@ -64,7 +73,10 @@ func (r *Repository) GetAllPatients() ([]models.Patient, error) {
 		From("patients").
 		OrderBy("created_at DESC")
 
-	sqlRaw, args, _ := query.ToSql()
+	sqlRaw, args, err := query.ToSql()
+	if err != nil {
+		return nil, err
+	}
 	rows, err := r.db.Query(sqlRaw, args...)
 	if err != nil {
 		return nil, err
@@ -89,11 +101,14 @@ func (r *Repository) GetPatientByID(id int) (*models.Patient, error) {
 		From("patients").
 		Where(sq.Eq{"id": id})
 
-	sqlRaw, args, _ := query.ToSql()
+	sqlRaw, args, err := query.ToSql()
+	if err != nil {
+		return nil, err
+	}
 	row := r.db.QueryRow(sqlRaw, args...)
 
 	var p models.Patient
-	err := row.Scan(&p.ID, &p.HISPatientID, &p.FirstName, &p.LastName, &p.MiddleName, &p.DateOfBirth, &p.Gender, &p.CreatedAt, &p.UpdatedAt)
+	err = row.Scan(&p.ID, &p.HISPatientID, &p.FirstName, &p.LastName, &p.MiddleName, &p.DateOfBirth, &p.Gender, &p.CreatedAt, &p.UpdatedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -103,8 +118,11 @@ func (r *Repository) GetPatientByID(id int) (*models.Patient, error) {
 
 func (r *Repository) DeletePatient(id int) error {
 	query := r.sq.Delete("patients").Where(sq.Eq{"id": id})
-	sqlRaw, args, _ := query.ToSql()
-	_, err := r.db.Exec(sqlRaw, args...)
+	sqlRaw, args, err := query.ToSql()
+	if err != nil {
+		return err
+	}
+	_, err = r.db.Exec(sqlRaw, args...)
 	return err
 }
 
@@ -114,8 +132,11 @@ func (r *Repository) UpdatePatientHISID(patientID int, hisPatientID string) erro
 		Set("updated_at", time.Now()).
 		Where(sq.Eq{"id": patientID})
 
-	sqlRaw, args, _ := query.ToSql()
-	_, err := r.db.Exec(sqlRaw, args...)
+	sqlRaw, args, err := query.ToSql()
+	if err != nil {
+		return err
+	}
+	_, err = r.db.Exec(sqlRaw, args...)
 	return err
 }
 
@@ -124,8 +145,11 @@ func (r *Repository) CreateHL7Message(msg models.HL7Message) error {
 		Columns("message_id", "patient_id", "message_type", "status").
 		Values(msg.MessageID, msg.PatientID, msg.MessageType, msg.Status)
 
-	sqlRaw, args, _ := query.ToSql()
-	_, err := r.db.Exec(sqlRaw, args...)
+	sqlRaw, args, err := query.ToSql()
+	if err != nil {
+		return err
+	}
+	_, err = r.db.Exec(sqlRaw, args...)
 	return err
 }
 
@@ -134,11 +158,14 @@ func (r *Repository) GetHL7MessageByMessageID(messageID string) (*models.HL7Mess
 		From("hl7_messages").
 		Where(sq.Eq{"message_id": messageID})
 
-	sqlRaw, args, _ := query.ToSql()
+	sqlRaw, args, err := query.ToSql()
+	if err != nil {
+		return nil, err
+	}
 	row := r.db.QueryRow(sqlRaw, args...)
 
 	var msg models.HL7Message
-	err := row.Scan(&msg.ID, &msg.MessageID, &msg.PatientID, &msg.MessageType, &msg.Status, &msg.HISPatientID, &msg.CreatedAt, &msg.AckReceivedAt)
+	err = row.Scan(&msg.ID, &msg.MessageID, &msg.PatientID, &msg.MessageType, &msg.Status, &msg.HISPatientID, &msg.CreatedAt, &msg.AckReceivedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -154,7 +181,10 @@ func (r *Repository) UpdateHL7MessageStatus(messageID string, status string, his
 		Set("ack_received_at", now).
 		Where(sq.Eq{"message_id": messageID})
 
-	sqlRaw, args, _ := query.ToSql()
-	_, err := r.db.Exec(sqlRaw, args...)
+	sqlRaw, args, err := query.ToSql()
+	if err != nil {
+		return err
+	}
+	_, err = r.db.Exec(sqlRaw, args...)
 	return err
 }
