@@ -14,7 +14,6 @@ WORKDIR /app
 
 COPY --from=builder /build/hospital-srv .
 COPY --from=builder /build/migrations ./migrations
-COPY --from=builder /build/.env .env
 
 EXPOSE 8081
 

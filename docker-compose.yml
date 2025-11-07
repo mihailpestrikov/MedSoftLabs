@@ -112,42 +112,6 @@ services:
     networks:
       - app-network
 
-  reception-ui:
-    build:
-      context: ./reception-ui
-      dockerfile: Dockerfile
-    container_name: reception-ui
-    ports:
-      - "5173:80"
-    depends_on:
-      - reception-api
-    networks:
-      - app-network
-
-  doctor-ui:
-    build:
-      context: ./doctor-ui
-      dockerfile: Dockerfile
-    container_name: doctor-ui
-    ports:
-      - "5174:80"
-    depends_on:
-      - doctor-api
-    networks:
-      - app-network
-
-  hospital-chief-ui:
-    build:
-      context: ./hospital-chief-ui
-      dockerfile: Dockerfile
-    container_name: hospital-chief-ui
-    ports:
-      - "5175:80"
-    depends_on:
-      - hospital-srv
-    networks:
-      - app-network
-
 networks:
   app-network:
     driver: bridge

@@ -58,13 +58,28 @@
 - JWT авторизация
 - Сертификаты для межсервисной аутентификации
 
+## Интерфейс
+
+### Интерфейс регистратуры
+![Страница входа](img/photo_1_2025-11-07_18-17-01.jpg)
+
+![Hospital Chief UI - Список пациентов](img/photo_4_2025-11-07_18-17-01.jpg)
+
+### Интерфейс главного врача
+![Doctor UI - Визиты врача](img/photo_3_2025-11-07_18-17-01.jpg)
+
+![Reception UI - Список пациентов](img/photo_2_2025-11-07_18-17-01.jpg)
+
+### Интерфейс врача
+![Hospital Chief UI - Управление визитами](img/photo_5_2025-11-07_18-17-01.jpg)
+
 ## Быстрый старт
 
 ### Требования
 
 - Go 1.21+
 - PostgreSQL 15+
-- Node.js 18+
+- Node.js 20+
 - Docker & Docker Compose (опционально)
 
 ### Установка
@@ -82,20 +97,38 @@ cd certs
 cd ..
 ```
 
-3. **Запустить сервисы**
+3. **Запустить backend сервисы через Docker**
 
-**Docker Compose**
 ```bash
 docker-compose up -d
 ```
 
+4. **Запустить UI сервисы**
+
+```bash
+# Терминал 1 - Reception UI
+cd reception-ui
+npm install
+npm run dev
+
+# Терминал 2 - Doctor UI
+cd doctor-ui
+npm install
+npm run dev
+
+# Терминал 3 - Hospital Chief UI
+cd hospital-chief-ui
+npm install
+npm run dev
+```
+
 После запуска сервисы будут доступны на следующих портах:
-- **Reception UI**: http://localhost:5173
-- **Doctor UI**: http://localhost:5174
-- **Hospital Chief UI**: http://localhost:5175
-- **Reception API**: http://localhost:8080
-- **Doctor API**: http://localhost:8081
-- **Hospital Server**: http://localhost:9090 (HTTP), localhost:2575 (MLLP)
+- **Reception UI**: https://localhost:5173
+- **Doctor UI**: https://localhost:5174
+- **Hospital Chief UI**: https://localhost:5175
+- **Reception API**: https://localhost:8080
+- **Doctor API**: https://localhost:8081
+- **Hospital Server**: https://localhost:9090 (HTTP), localhost:2575 (MLLP)
 - **Reception DB**: localhost:5432
 - **Hospital DB**: localhost:5433
 
@@ -114,7 +147,7 @@ docker-compose up -d
 
 ### Работа регистратуры
 
-1. Открыть Reception UI по адресу http://localhost:5173
+1. Открыть Reception UI по адресу https://localhost:5173
 2. Создать запись пациента (Фамилия, Имя, Отчество, Дата рождения, Пол)
 3. Система автоматически отправляет HL7 ADT^A04 в ГИС
 4. UUID из ГИС появляется в реальном времени при получении ACK
@@ -123,7 +156,7 @@ docker-compose up -d
 
 ### Работа врача
 
-1. Открыть Doctor UI по адресу http://localhost:5174
+1. Открыть Doctor UI по адресу https://localhost:5174
 2. Выбрать свой ID врача из выпадающего списка
 3. Просмотреть все назначенные визиты
 4. Обновить статус визита (Запланирован → Пришел → В процессе → Завершен)
@@ -131,7 +164,7 @@ docker-compose up -d
 
 ### Административный интерфейс
 
-1. Открыть Hospital Chief UI по адресу http://localhost:5175
+1. Открыть Hospital Chief UI по адресу https://localhost:5175
 2. Просмотреть всех пациентов с UUID из ГИС
 3. Просмотреть все визиты по всем врачам
 4. Отслеживать изменения в реальном времени через WebSocket
